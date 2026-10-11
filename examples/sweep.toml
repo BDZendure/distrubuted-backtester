@@ -1,0 +1,14 @@
+# Supply --output-dir DIRECTORY on the CLI to choose the result destination.
+schema_version = 1
+command = "sweep"
+data = "sma.csv"
+data_format = "csv"
+symbol = "SYNTH"
+price_basis = "raw"
+fast = [1, 2]
+slow = [3, 4]
+initial_cash = "1000"
+fee_bps = 0
+backend = "sequential"
+workers = 1
+log_level = "OFF"

@@ -64,3 +64,22 @@ outside repository. Docker daemon/image availability must be recorded, no mocked
 container claims. CI can run actual container build/smoke on Linux; local remote
 CI remains unobserved. Add deterministic correctness/operation count regression
 checks, no noisy wall-clock gate without stable measurement evidence.
+
+## Container choice and availability
+
+Use matching builder/runtime stages from
+`python:3.12.15-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258`.
+The published index includes Linux AMD64 and ARM64. Published support is separate
+from actual runtime verification. [Official image metadata](https://raw.githubusercontent.com/docker-library/repo-info/master/repos/python/remote/3.12.15-slim-bookworm.md).
+
+Install the project wheel and the existing optional extras with exact transitive
+versions and binary artifact hashes. Provide runtime and dev targets, UID/GID
+10001, an exec entrypoint, writable home/output mounts and read-only inputs.
+The dependency-free core wheel remains independently runnable.
+
+Docker CLI 29.5.2 initially found no daemon socket. Starting the installed
+Docker Desktop app made its server reachable at 29.5.2. Actual builds and smoke
+execution still require validation; no successful container outcome is inferred
+from the daemon check. Docker stop allows cleanup before a forced kill;
+our signal bridge does not impose a runtime cleanup deadline.
+[Docker stop behavior](https://docs.docker.com/reference/cli/docker/container/stop/).

@@ -45,7 +45,10 @@ optional Ray/PyArrow/DuckDB/psutil, Docker and GitHub Actions.
 - [x] Run frozen baseline native suite:
   `PHASE5_STORAGE_CHILD_TESTS=1 .venv/bin/python -m pytest -q`;
   1,397 passed in 138.99 seconds.
-- [ ] Record independent container/CI design audit and actual daemon availability.
+- [x] Record independent container/CI design audit and actual daemon availability.
+  Docker CLI 29.5.2 initially had absent sockets. Starting the installed Desktop
+  app made `docker info --format '{{.ServerVersion}}'` return 29.5.2. No other
+  images or containers are modified. Container build/runtime validation follows.
 
 ## Task 1: Validated TOML configuration and read-only status
 
@@ -67,7 +70,7 @@ directory. Validate exact integers, boolean switches, string choices, finite
 numerical values, nonempty window/resource arrays and known keys. Reuse domain
 constructors for semantic validation in the CLI.
 
-- [ ] Write failing configuration tests for a file-relative CSV, strict field/type
+- [x] Write failing configuration tests for a file-relative CSV, strict field/type
   errors, wrong command/version, malformed TOML, missing file and exact choices.
   Example assertion:
 
@@ -75,18 +78,25 @@ constructors for semantic validation in the CLI.
   assert load_configuration(config, "backtest")["data"] == config.parent / "sma.csv"
   ```
 
-- [ ] Run `.venv/bin/python -m pytest tests/test_configuration.py -q` and record
+- [x] Run `.venv/bin/python -m pytest tests/test_configuration.py -q` and record
   actual missing-feature failures before implementation.
-- [ ] Implement loader and two usable examples with no output path embedded.
-- [ ] Write failing status tests for complete real sequential exports, corrupted
+- [x] Implement loader and two usable examples with no output path embedded.
+- [x] Write failing status tests for complete real sequential exports, corrupted
   full artifacts, incomplete exports, journal pending/running/terminal states,
   active-writer reads, job filtering and nonexistent output without creation.
-- [ ] Run `.venv/bin/python -m pytest tests/test_operational_status.py -q`, then
+- [x] Run `.venv/bin/python -m pytest tests/test_operational_status.py -q`, then
   implement against `read_experiment_snapshot` and the existing journal reader.
   Consume every artifact for classic validation before returning any status.
   Preserve durable status fields; reject unknown job membership. Report retained
   worker readiness metadata as observed, never as current alive/dead state.
 - [ ] Run both files, scoped Ruff/format/mypy, independent task review, and commit.
+
+Task 1 evidence: configuration 308 tests and scoped static checks passed;
+independent spec/quality review accepted the loader/examples. Status initially
+passed 77 tests. Independent review reproduced a journal appearing during final
+classic artifact validation; five new red regressions preceded a final presence
+check. Corrected status: 82 tests and scoped static checks passed, re-review pending.
+Initial module-missing red runs were collection errors, not behavioral assertions.
 
 ## Task 2: Scoped structured logging and CLI lifecycle
 
