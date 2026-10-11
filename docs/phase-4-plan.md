@@ -19,13 +19,14 @@ coordinator, and CLI status/resume commands. No new dependency is required.
 - [x] Implement asynchronous Ray execution with actor replacement and cleanup.
 - [x] Implement deadlines, bounded retries, resume, and derived export repair.
 - [x] Add durable sweep, resume, and read-only status commands.
-- [ ] Verify all seven required failure scenarios with real storage and workers.
+- [x] Verify all seven required failure scenarios with real storage and workers.
 - [x] Independently review changes and address findings with regression tests.
 - [x] Run non-Ray suite, pure transport tests, lint, formatting, typing, and core wheel demonstrations.
-- [ ] Run full final suite and actual Ray failure demonstrations after explicit approval.
+- [x] Run full final suite and actual Ray failure demonstrations after explicit approval: 897 passed in 105.18 seconds, including strengthened timeout assertions.
 - [x] Update beginner and technical explanations, architecture, roadmap, and report.
 - [x] Commit implementation and documentation milestones, recording pending real Ray validation.
-- [ ] Complete Phase 4 acceptance and request explicit approval before Phase 5.
+- [x] Complete Phase 4 acceptance with CLI parity, export repair, and packaging checks.
+- [ ] Obtain new explicit approval before starting Phase 5.
 
 ## Boundaries
 
@@ -38,8 +39,10 @@ Successful semantic results stay independent of retries and completion order.
 Actual multiple-machine partitions and disk power loss remain unverified unless
 we execute those scenarios. Process termination must not be described as either.
 
-## Verification hold
+## Verification authorization
 
 Automatic approval review rejected the real Ray fault-test run, requiring explicit
 user approval for intentional worker crashes despite the recorded source freeze.
-The approval request is pending. No Phase 5 work has begun.
+The user explicitly approved the bounded local failure tests. The focused run
+passed 17 tests in 40.47 seconds, and the full suite passed all 897 tests. Source
+remained frozen throughout the focused and full runs. No Phase 5 work has begun.

@@ -130,6 +130,10 @@ and readiness ordering. They do not establish actual worker-crash recovery.
 `tests/test_scheduler_faults.py` contains six actual Ray cases: death before dispatch,
 death during real simulation steps, lost reply after calculation, live timeout,
 repeated structured failure, and abrupt coordinator restart. Run after freezing
-package source. These cases need local sockets and process control and remain
-unexecuted pending explicit authorization required by automatic approval review.
+package source. These cases need local sockets and process control and are
+subject to the environment's process permissions. After explicit user approval,
+all six cases passed in the focused run with CLI tests: 17 passed in 40.47 seconds.
+The final complete suite passed all 897 tests in 105.18 seconds, including stronger
+timeout assertions, those same fault scenarios, and the existing
+cluster/resource/ownership tests.
 See [the verification report](phase-4-report.md) for observed commands and outcomes.

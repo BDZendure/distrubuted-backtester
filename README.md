@@ -4,8 +4,9 @@ A portfolio engineering project for reproducible strategy simulations, local CPU
 parallelism, and Ray execution. The focus is correct event
 timing, exact accounting, explicit failure behavior, and measured performance.
 
-**Current stage: Phase 4, fault tolerance and scheduling.** Run a deterministic daily
-SMA backtest, or a parameter sweep through sequential, spawn process, or Ray backends.
+**Current stage: Phase 4 verified locally, fault tolerance and scheduling.** Run a
+deterministic daily SMA backtest, or a parameter sweep through sequential, spawn
+process, or Ray backends.
 Stable jobs, bounded submissions, explicit failures, incremental result export,
 and reproducible benchmark measurements extend the Phase 1 engine.
 Ray is optional. Durable Ray sweeps add journaled retries, deadlines, and resume.

@@ -273,6 +273,15 @@ def test_real_fault_and_recovery(tmp_path: Path, mode: str) -> None:
             assert marker["observed_bars"] == 2
         elif mode == "before":
             assert report["diagnostics"]["replacements"] == 1
+        elif mode == "timeout":
+            marker = json.loads((tmp_path / "attempt-1.json").read_text())
+            assert marker["stage"] == "started"
+            first, second = status["attempts"]
+            assert first["reason"] == "timeout"
+            assert first["failure"]["error_type"] == "JobTimeout"
+            assert second["status"] == "succeeded"
+            assert report["diagnostics"]["retirements"] == 1
+            assert report["diagnostics"]["replacements"] == 1
 
 
 if __name__ == "__main__":

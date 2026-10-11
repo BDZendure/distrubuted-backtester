@@ -11,9 +11,9 @@ The [Phase 2 report](phase-2-report.md) records its verification and measurement
 Phase 3 was explicitly approved and is verified locally; its
 [report](phase-3-report.md) and [comparisons](benchmarks/phase-3/results.md) record
 the evidence and unavailable memory coverage. Phase 4 was explicitly approved
-and its implementation is ready on the fault-tolerance feature branch. Real Ray
-failure verification is pending automatic-review-required user authorization;
-Phase 4 acceptance is incomplete. Phase 5 requires new explicit approval.
+and is verified locally, including actual Ray fault recovery and coordinator
+restart. Its [report](phase-4-report.md) records 897 passing tests and CLI export
+parity/repair evidence. Phase 5 requires new explicit approval.
 
 ## Phase 0: Architecture and repository setup
 
