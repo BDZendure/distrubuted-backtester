@@ -72,24 +72,26 @@ Generate before measurement. Simulation loads CSV before measurement, runs fresh
 job construction, sequential simulation, detailed export and finalization through
 existing APIs. Independent result hashing follows each scoped measurement.
 
-- [ ] Write failing API/CLI tests before production code. Cover invalid exact
+- [x] Write failing API/CLI tests before production code. Cover invalid exact
   integers/kind/scope, fresh/protected output, CPU records/raw stats, tracemalloc
   retained/peak distinctions, existing tracer rejection, repeats, whole-result
   equality, source freeze checks, failure persistence and cleanup.
-- [ ] Run the tests and record failures caused by the missing feature.
-- [ ] Implement minimum CLI/API with lazy instrumentation. Capture environment,
+- [x] Run the tests and record failures caused by the missing feature.
+- [x] Implement minimum CLI/API with lazy instrumentation. Capture environment,
   implementation, workload/config/data hashes, scoped timings and own-process
   lifetime RSS through existing `peak_rss`. Timing must remain uninstrumented.
-- [ ] CPU records retain filename/line/function, primitive/total calls, self and
+- [x] CPU records retain filename/line/function, primitive/total calls, self and
   cumulative seconds plus a pstats file. Allocation records retain current/peak
   traced bytes and before/after live allocation differences, never total allocation
   frequency or native/private memory claims. Stop only the tracer this run started.
-- [ ] For simulation, fingerprint complete `result_to_dict` records in canonical
+- [x] For simulation, fingerprint complete `result_to_dict` records in canonical
   config order. For experiments, verify complete snapshots before hashing all
   successful result records. All repetitions must agree; job IDs may differ across
   implementations but result semantics cannot. Persist terminal errors before
   re-raising, with no successful fingerprint claim on failure.
-- [ ] Run scoped tests, Ruff, format, mypy; obtain independent task review and commit.
+- [x] Run scoped tests, Ruff, format, mypy; obtain independent task review and commit.
+
+Task 1 evidence: missing-feature and boundary red runs preceded implementation; independent review reproduced active caller instrumentation and combined-failure cleanup gaps. New regressions observed 32 failures before fixes. Main verification: 112 scoped tests passed in 0.39 s; scoped Ruff/format/mypy passed. Final real 32-bar/four-job smoke agreed across all six kind/scope combinations. Failure publication is attempted; an unwritable destination cannot guarantee a report.
 
 ## Task 2: Cross-revision comparison over existing benchmark reports
 
