@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "distributed-backtester"
-version = "0.2.0"
+version = "0.3.0"
 description = "A correctness-first foundation for reproducible distributed backtesting."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -29,6 +29,7 @@ dev = [
     "pytest==9.1.1",
     "ruff==0.17.0",
 ]
+benchmark = ["psutil==7.2.2"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
