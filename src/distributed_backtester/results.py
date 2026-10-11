@@ -1,7 +1,9 @@
 """Canonical semantic JSON and publication of complete local result files."""
 
 import json
+import logging
 import os
+from datetime import date
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -9,18 +11,22 @@ from distributed_backtester.models import BacktestResult
 from distributed_backtester.money import format_money, format_ratio
 from distributed_backtester.simulation import SMA_ID
 
+_LOG = logging.getLogger(__name__)
+
 
 def result_to_dict(result: BacktestResult) -> dict[str, object]:
     """Money is six-place USD text; ratios are twelve-place decimal text."""
+    if result.strategy_id != SMA_ID:
+        raise ValueError(
+            "custom strategy results need captured parameters before export"
+        )
     config = result.config
     metadata = result.dataset_metadata
     metrics = result.metrics
-    parameters: dict[str, int] | None = None
-    if result.strategy_id == SMA_ID:
-        parameters = {
-            "fast_window": config.strategy.fast_window,
-            "slow_window": config.strategy.slow_window,
-        }
+    parameters = {
+        "fast_window": config.strategy.fast_window,
+        "slow_window": config.strategy.slow_window,
+    }
     return {
         "schema_version": result.schema_version,
         "engine_id": result.engine_id,
@@ -55,9 +61,21 @@ def result_to_dict(result: BacktestResult) -> dict[str, object]:
         ],
         "order_outcomes": [
             {
-                "sequence": outcome.intent.sequence,
-                "target": outcome.intent.target,
-                "decision_session": outcome.intent.decision_session.isoformat(),
+                "sequence": (
+                    outcome.intent.sequence
+                    if type(outcome.intent.sequence) is int
+                    else None
+                ),
+                "target": (
+                    outcome.intent.target
+                    if isinstance(outcome.intent.target, str)
+                    else None
+                ),
+                "decision_session": (
+                    outcome.intent.decision_session.isoformat()
+                    if type(outcome.intent.decision_session) is date
+                    else None
+                ),
                 "execution_session": (
                     outcome.execution_session.isoformat()
                     if outcome.execution_session is not None
@@ -136,4 +154,11 @@ def write_result(
             os.link(temporary, path)
     finally:
         if temporary is not None:
-            temporary.unlink(missing_ok=True)
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError as error:
+                # Publication is the commit point. Cleanup cannot reverse it or
+                # mask an earlier error from writing/fsync/link/replacement.
+                _LOG.warning(
+                    "Temporary result cleanup failed for %s: %s", temporary, error
+                )

@@ -1,2 +1,3 @@
 recursive-include docs *.md
 recursive-include examples *.csv
+recursive-include tests *.py

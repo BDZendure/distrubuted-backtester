@@ -15,6 +15,7 @@ from distributed_backtester.models import (
 )
 from distributed_backtester.money import parse_money
 from distributed_backtester.simulation import run_backtest
+from distributed_backtester.strategy import MovingAverageCrossover
 
 
 def dataset(closes: list[int], opens: list[int] | None = None) -> MarketDataset:
@@ -183,6 +184,23 @@ def test_repeated_invocations_create_fresh_strategy_state() -> None:
     config = BacktestConfig(strategy=StrategyConfig(1, 2), fee_bps=10)
     bars = dataset([10, 11, 9, 12, 8])
     assert run_backtest(config, bars) == run_backtest(config, bars)
+
+
+def test_supplied_sma_config_must_match_reported_parameters() -> None:
+    with pytest.raises(ValueError, match="strategy configuration"):
+        run_backtest(
+            BacktestConfig(),
+            dataset([10]),
+            strategy=MovingAverageCrossover(StrategyConfig(5, 20)),
+        )
+
+
+def test_supplied_matching_sma_retains_parameter_provenance() -> None:
+    config = BacktestConfig(strategy=StrategyConfig(1, 2))
+    result = run_backtest(
+        config, dataset([10]), strategy=MovingAverageCrossover(config.strategy)
+    )
+    assert result.strategy_id == "sma-crossover-v1"
 
 
 @pytest.mark.parametrize("target", ["short", "unknown"])

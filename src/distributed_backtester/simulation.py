@@ -36,6 +36,16 @@ def run_backtest(
     if strategy is None:
         active: Strategy = MovingAverageCrossover(config.strategy)
         strategy_id = SMA_ID
+    elif (
+        isinstance(strategy, MovingAverageCrossover)
+        and type(strategy) is MovingAverageCrossover
+    ):
+        if strategy.config != config.strategy:
+            raise ValueError(
+                "supplied strategy configuration must match BacktestConfig.strategy"
+            )
+        active = strategy
+        strategy_id = SMA_ID
     else:
         active = strategy
         strategy_id = f"{type(strategy).__module__}.{type(strategy).__qualname__}"

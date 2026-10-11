@@ -30,6 +30,11 @@ class MovingAverageCrossover:
         self._target = "flat"
         self._sequence = 0
 
+    @property
+    def config(self) -> StrategyConfig:
+        """Immutable parameters used for reproducible built-in SMA results."""
+        return self._config
+
     def on_close(
         self, history: CloseHistory, portfolio: Portfolio
     ) -> TargetIntent | None:
