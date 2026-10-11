@@ -6,13 +6,13 @@ from pathlib import Path
 from time import perf_counter
 
 from distributed_backtester.backends.base import ExecutionBackend
-from distributed_backtester.data import load_csv
 from distributed_backtester.experiment_artifacts import (
     index_record,
     manifest_record,
     outcome_artifact,
 )
 from distributed_backtester.jobs import JobSpec, canonical_json, expand_grid
+from distributed_backtester.market_data import DataFormat, DatasetCache, load_dataset
 from distributed_backtester.models import MarketDataset
 from distributed_backtester.provenance import (
     ImplementationIdentity,
@@ -145,9 +145,19 @@ def run_experiment(
     fee_bps: int,
     output: Path,
     backend: ExecutionBackend,
+    data_format: DataFormat = "auto",
+    expected_version: str | None = None,
+    cache: DatasetCache | None = None,
 ) -> ExperimentSummary:
     started = perf_counter()
-    dataset = load_csv(data, symbol=symbol, price_basis="raw")
+    dataset = load_dataset(
+        data,
+        symbol=symbol,
+        price_basis="raw",
+        data_format=data_format,
+        expected_version=expected_version,
+        cache=cache,
+    )
     loaded = perf_counter()
     implementation = current_implementation()
     jobs, membership = expand_grid(
@@ -168,7 +178,7 @@ def run_experiment(
         started=started,
         source_path=data,
         setup_timings={
-            "csv_load_seconds": loaded - started,
+            f"{dataset.metadata.source_format}_load_seconds": loaded - started,
             "prepare_jobs_seconds": perf_counter() - loaded,
         },
     )

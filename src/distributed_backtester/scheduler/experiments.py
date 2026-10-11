@@ -5,13 +5,13 @@ from pathlib import Path
 from time import time
 
 from distributed_backtester.backends.ray import RayBackend
-from distributed_backtester.data import load_csv
 from distributed_backtester.experiment_artifacts import (
     manifest_record,
     validate_manifest,
 )
 from distributed_backtester.experiments import ExperimentSummary
 from distributed_backtester.jobs import expand_grid
+from distributed_backtester.market_data import DataFormat, load_dataset
 from distributed_backtester.provenance import current_implementation
 from distributed_backtester.scheduler.coordinator import run_durable
 from distributed_backtester.scheduler.journal import Journal, read_manifest
@@ -21,7 +21,9 @@ from distributed_backtester.scheduler.ray_runtime import RayAttemptRuntime
 
 def _check_input(data: Path, output: Path) -> None:
     if data.resolve().is_relative_to(output.resolve()):
-        raise ValueError("input CSV must be outside the durable experiment directory")
+        raise ValueError(
+            "input dataset must be outside the durable experiment directory"
+        )
 
 
 def start_experiment(
@@ -35,9 +37,17 @@ def start_experiment(
     output: Path,
     backend: RayBackend,
     policy: RetryPolicy,
+    data_format: DataFormat = "auto",
+    expected_version: str | None = None,
 ) -> ExperimentSummary:
     _check_input(data, output)
-    dataset = load_csv(data, symbol=symbol, price_basis="raw")
+    dataset = load_dataset(
+        data,
+        symbol=symbol,
+        price_basis="raw",
+        data_format=data_format,
+        expected_version=expected_version,
+    )
     identity = current_implementation()
     jobs, membership = expand_grid(
         fast,
@@ -53,11 +63,23 @@ def start_experiment(
 
 
 def resume_experiment(
-    data: Path, *, output: Path, backend: RayBackend
+    data: Path,
+    *,
+    output: Path,
+    backend: RayBackend,
+    data_format: DataFormat = "auto",
+    expected_version: str | None = None,
 ) -> ExperimentSummary:
     _check_input(data, output)
     _manifest, jobs = validate_manifest(read_manifest(output))
-    dataset = load_csv(data, symbol=jobs[0].dataset.symbol, price_basis="raw")
+    selected = jobs[0].dataset.source_format if data_format == "auto" else data_format
+    dataset = load_dataset(
+        data,
+        symbol=jobs[0].dataset.symbol,
+        price_basis="raw",
+        data_format=selected,
+        expected_version=expected_version,
+    )
     identity = current_implementation()
     with Journal.resume(
         output,
