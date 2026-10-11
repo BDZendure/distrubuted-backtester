@@ -4,20 +4,23 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "distributed-backtester"
-version = "0.1.0"
+version = "0.2.0"
 description = "A correctness-first foundation for reproducible distributed backtesting."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
 license-files = ["LICENSE"]
 classifiers = [
-    "Development Status :: 1 - Planning",
+    "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
 ]
 dependencies = []
+
+[project.scripts]
+distributed-backtester = "distributed_backtester.cli:main"
 
 [project.optional-dependencies]
 dev = [

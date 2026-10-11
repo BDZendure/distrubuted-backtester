@@ -1,1 +1,1 @@
-"""Foundation for a reproducible backtesting engine; Phase 0 contains no simulator."""
+"""Deterministic daily backtesting with exact single-asset portfolio accounting."""
