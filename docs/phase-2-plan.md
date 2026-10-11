@@ -86,15 +86,15 @@ run_experiment(data: Path, *, symbol: str, fast: Sequence[int], slow: Sequence[i
 
 ## Task 1: Serializable identity and jobs
 
-- [ ] Write tests for canonical IDs, source fingerprints, JSON/pickle round trips,
+- [x] Write tests for canonical IDs, source fingerprints, JSON/pickle round trips,
       unknown/malformed fields, bool numeric rejection, changed config/data/code,
       duplicate membership, and invalid/empty grids.
-- [ ] Observe missing implementation failures with
+- [x] Observe missing implementation failures with
       `.venv/bin/python -m pytest tests/test_jobs.py tests/test_provenance.py`.
-- [ ] Implement frozen validated identities/job specifications and strict decoding.
+- [x] Implement frozen validated identities/job specifications and strict decoding.
       Source fingerprint hashes sorted package-relative Python filenames and bytes,
       independent of installation path; fail if source cannot be read.
-- [ ] Verify focused pytest, Ruff, strict mypy and commit the identity milestone.
+- [x] Verify focused pytest, Ruff, strict mypy and commit the identity milestone.
 
 Representative contract:
 
@@ -106,17 +106,17 @@ assert pickle.loads(pickle.dumps(job)) == job
 
 ## Task 2: Worker and execution backends
 
-- [ ] Write worker/reference/process tests, including ordinary dataset/identity
+- [x] Write worker/reference/process tests, including ordinary dataset/identity
       mismatch failures mixed with successes, spawn reuse, distinct worker counts,
       immutable data, bounded outstanding jobs, and missing/duplicate outcomes.
-- [ ] Observe red with `.venv/bin/python -m pytest tests/test_worker.py tests/test_backends.py`.
-- [ ] Implement a worker without IO/persistence and a sequential streaming adapter.
+- [x] Observe red with `.venv/bin/python -m pytest tests/test_worker.py tests/test_backends.py`.
+- [x] Implement a worker without IO/persistence and a sequential streaming adapter.
       Catch ordinary `Exception` as a failure; do not swallow `BaseException`.
-- [ ] Implement top-level spawn initializer and worker entry. Validate installed
+- [x] Implement top-level spawn initializer and worker entry. Validate installed
       identity once per initialized process. Submit at most `max_in_flight` jobs,
       yield completed outcomes, and refill only after the consumer resumes.
       Close/cancel pending futures and shut down the pool when iteration stops.
-- [ ] Compare complete serialized semantic outcomes with the sequential reference
+- [x] Compare complete serialized semantic outcomes with the sequential reference
       using real 1/2/4/8-worker pools where supported, and commit after verification.
 
 Representative equivalence:
@@ -135,20 +135,20 @@ assert parallel == reference
 
 ## Task 3: Experiment orchestration and CLI
 
-- [ ] Write tests before implementation for sorted canonical manifest/index,
+- [x] Write tests before implementation for sorted canonical manifest/index,
       per-job digests and relative references, retained duplicate membership,
       result/failure export, incomplete/invalid backend output, and output protection.
-- [ ] Implement source load, identity/grid creation, fresh output directory,
+- [x] Implement source load, identity/grid creation, fresh output directory,
       manifest, incremental artifacts, and final compact index after pool shutdown.
       Verify each result matches its job metadata/config/engine identity and every
       expected job has exactly one outcome. Export failure aborts the experiment.
-- [ ] Keep execution information in `execution.json`, outside semantic comparison.
+- [x] Keep execution information in `execution.json`, outside semantic comparison.
       Report counts/timing, source path, Git status/revision, and environment.
-- [ ] Add `sweep` CLI options for data/symbol/raw basis, fast/slow lists, cash/fees,
+- [x] Add `sweep` CLI options for data/symbol/raw basis, fast/slow lists, cash/fees,
       sequential/process backend, workers, in-flight limit, and output directory.
       Partial job failure exits 1 with structured artifacts; input/fatal errors exit
       2 without a finalized success index. Preserve the backtest command.
-- [ ] Run actual CLI subprocesses, full reference equivalence, lint/types, and commit.
+- [x] Run actual CLI subprocesses, full reference equivalence, lint/types, and commit.
 
 Example:
 
@@ -160,25 +160,25 @@ Example:
 
 ## Task 4: Reproducible measurements
 
-- [ ] Add optional psutil extra and a complete pinned benchmark environment; record
+- [x] Add optional psutil extra and a complete pinned benchmark environment; record
       dependency metadata and version compatibility. CI installs the measurement
       extra for measurement correctness tests, without enforcing timing thresholds.
-- [ ] Write tests for deterministic synthetic CSV/config grids, measurements,
+- [x] Write tests for deterministic synthetic CSV/config grids, measurements,
       process-tree sample sums, summary medians/ranges/speedup/efficiency, failed
       samples, and digest equality verification before comparing timings.
-- [ ] Implement benchmark runner spawning a fresh CLI experiment for every trial.
+- [x] Implement benchmark runner spawning a fresh CLI experiment for every trial.
       Start timing before process creation; include source loading, startup,
       job/result serialization, artifacts/index/report, and shutdown. Sample root
       plus descendants' simultaneous RSS at 50 ms; record missed/denied samples,
       intervals, coordinator RSS, and raw timestamped observations. This is an RSS
       sum, not unique physical memory. Keep sampling overhead consistent.
-- [ ] Run one declared unmeasured warm-up per configuration, then five repetitions
+- [x] Run one declared unmeasured warm-up per configuration, then five repetitions
       in rotating configuration order, for small and substantial distinct-job grids.
       Pilot sizes before fixing the final workloads. Measure sequential and 2/4/8
       workers on supported hardware, preserving identical semantic artifact hashes.
-- [ ] Measure increasing job-count coordinator memory with fixed bar count;
+- [x] Measure increasing job-count coordinator memory with fixed bar count;
       document compact index/job metadata growth and bounded detailed-result memory.
-- [ ] Commit source before final measurements, record revision and clean/dirty state,
+- [x] Commit source before final measurements, record revision and clean/dirty state,
       retain all raw observations and failures, and summarize only observed results.
 
 Benchmark runs label process-cold / OS cache uncontrolled. No cache flushing or
@@ -186,16 +186,16 @@ host changes. Five samples support median/range summaries, not precise percentil
 
 ## Task 5: Review, documentation, release, checkpoint
 
-- [ ] Independent correctness review of jobs, bounded process collection, output
+- [x] Independent correctness review of jobs, bounded process collection, output
       validation/publication, sampling boundaries, and benchmark reproducibility.
       Reproduce/fix substantive findings and re-review within this phase.
-- [ ] Update README, architecture, roadmap, ADR 0003, dependencies/testing/
+- [x] Update README, architecture, roadmap, ADR 0003, dependencies/testing/
       benchmarking, beginner/technical guides, and complete Phase 2 report.
-- [ ] Run pytest, Ruff lint/format, strict mypy, pip check, isolated distributions,
+- [x] Run pytest, Ruff lint/format, strict mypy, pip check, isolated distributions,
       fresh-wheel sweep CLI outside checkout, semantic equality, document links,
       source archive completeness, and Git whitespace checks.
-- [ ] Commit focused milestones and report actual test/measurement results.
-- [ ] Stop before Phase 3 and ask explicit approval. No remote push.
+- [x] Commit focused milestones and report actual test/measurement results.
+- [x] Stop before Phase 3 and ask explicit approval. No remote push.
 
 Final commands:
 
@@ -207,3 +207,11 @@ Final commands:
 .venv/bin/python -m pip check
 .venv/bin/python -m build
 ```
+
+## Completion notes
+
+Tasks 1-2 were committed together as `8e9ab9c`; experiment orchestration,
+measurement, and current documentation were committed as `dc01e06` before the
+primary measurements. The benchmark is a dedicated module CLI rather than an
+extra top-level subcommand. Final evidence is in the [report](phase-2-report.md)
+and [benchmark record](benchmarks/phase-2/results.md). Phase 3 is awaiting approval.

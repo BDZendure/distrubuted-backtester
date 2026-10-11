@@ -6,8 +6,8 @@ limitations, reproduction commands, engineering lessons, and the next proposal.
 Explicit user approval is required before starting the following phase.
 
 **Current status:** Phases 0 and 1 completed. Phase 1 was explicitly approved and
-its [report](phase-1-report.md) records validation. Phase 2 was explicitly approved and is being implemented and verified.
-The [Phase 2 report](phase-2-report.md) will record its evidence. Phase 3 requires
+its [report](phase-1-report.md) records validation. Phase 2 was explicitly approved and is complete.
+The [Phase 2 report](phase-2-report.md) records its verification and measurements. Phase 3 requires
 new explicit approval.
 
 ## Phase 0: Architecture and repository setup

@@ -376,8 +376,8 @@ peaks or count shared pages more than once; the sum is not unique physical memor
 The operating system's file cache is uncontrolled even though processes are new.
 Worker counts alone do not establish faster execution.
 
-The upcoming [Phase 2 report](phase-2-report.md) and
-[benchmark results](benchmarks/phase-2/results.md) will provide verification and
+The [Phase 2 report](phase-2-report.md) and
+[benchmark results](benchmarks/phase-2/results.md) record verification and
 actual measurements. See the [benchmark methodology](benchmarking.md) for the
 measurement definitions.
 

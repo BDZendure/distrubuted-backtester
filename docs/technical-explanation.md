@@ -15,7 +15,7 @@ The optional `benchmark` extra pins `psutil==7.2.2` for memory sampling.
 The [Phase 1 plan](phase-1-plan.md) defines the engine scope, and the
 [Phase 2 plan](phase-2-plan.md) defines local experiment execution. The
 [Phase 1 verification report](phase-1-report.md) records the engine evidence;
-the upcoming [Phase 2 report](phase-2-report.md) will record the current commands,
+the [Phase 2 report](phase-2-report.md) records the current commands,
 checks, environment, packaging evidence, and limitations. This guide
 describes implemented contracts; it does not infer verification from a plan or
 quote a provisional test count. See the
@@ -480,7 +480,7 @@ already running jobs may finish during shutdown.
 `run_experiment` loads the CSV once, fingerprints the implementation, and expands
 the grid before `collect_experiment` creates a fresh directory. Collection checks
 outcome IDs for unknowns/duplicates and each successful result for matching config,
-dataset, engine, and supported SMA identity. Its files are:
+dataset, engine, supported SMA identity, and exact supported result schema. Its files are:
 
 | File | Contract |
 | --- | --- |
@@ -543,7 +543,10 @@ process creation through child exit, including
 imports, CSV loading, job creation, pool startup, simulation, serialization,
 collection, detailed export, execution/index finalization, and shutdown. Synthetic
 CSV generation, the observer's own RSS, and artifact verification after child exit
-are excluded. The sweep's `elapsed_before_finalization_seconds` has a narrower
+are excluded. Operational reports also measure CSV loading, job preparation, backend iterator
+advancement, detailed export, and first-outcome latency. The latter overlaps
+backend time; those intervals cannot isolate worker CPU costs.
+The sweep's `elapsed_before_finalization_seconds` has a narrower
 boundary and is not the primary benchmark duration.
 
 There is one warm-up per configuration, retained separately from comparison
@@ -561,7 +564,8 @@ verifies its SHA-256 against the index. It then hashes an 8-byte manifest length
 the manifest bytes, and the index bytes. Since the index contains the verified
 artifact digests, equality covers manifest, index, and detailed
 semantic outputs. The runner requires the same digest across warm-ups and timed
-trials before completing the report; `execution.json` is excluded.
+trials before completing the report, and validates each trial implementation
+against the report fingerprint; `execution.json` is excluded.
 
 Optional `psutil==7.2.2` sampling uses a nominal 50 ms interval
 (`--interval-seconds 0.05`). Raw process-tree RSS readings cover the experiment
@@ -577,8 +581,8 @@ denied. RSS can count shared pages repeatedly, and samples can miss short-lived 
 or brief peaks. This is a sampled RSS sum, with no claim to unique physical memory.
 Observer overhead is present consistently in trials.
 
-The upcoming [benchmark results](benchmarks/phase-2/results.md) and
-[Phase 2 report](phase-2-report.md) will provide measured observations and
+The [benchmark results](benchmarks/phase-2/results.md) and
+[Phase 2 report](phase-2-report.md) record measured observations and
 verification evidence. See [benchmark methodology](benchmarking.md) for the wider
 measurement contract. This explanation makes no measured performance claims.
 
