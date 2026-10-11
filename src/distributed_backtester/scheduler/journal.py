@@ -483,6 +483,85 @@ def read_manifest(output: Path) -> dict[str, object]:
         return _load(db).manifest
 
 
+@dataclass(slots=True)
+class CommittedSnapshot:
+    """Headers and streamed artifacts from one read-only SQLite transaction.
+
+    The context owns the connection. Full artifact text is never accumulated;
+    use iter_artifacts only while read_committed_snapshot's context is open.
+    """
+
+    manifest: dict[str, object]
+    jobs: tuple[JobSpec, ...]
+    status: dict[str, object]
+    records: tuple[dict[str, object], ...]
+    _db: sqlite3.Connection
+    _closed: bool = False
+
+    def iter_artifacts(self) -> Iterator[tuple[str, bytes, dict[str, object]]]:
+        if self._closed:
+            raise RuntimeError("committed snapshot is closed")
+        jobs = {job.job_id: job for job in self.jobs}
+        cursor = self._db.execute("SELECT * FROM commits ORDER BY job_id")
+        try:
+            while True:
+                if self._closed:
+                    raise RuntimeError("committed snapshot is closed")
+                row = cursor.fetchone()
+                if row is None:
+                    break
+                attempt = self._db.execute(
+                    "SELECT * FROM attempts WHERE attempt_id = ?", (row["attempt_id"],)
+                ).fetchone()
+                status = self._db.execute(
+                    "SELECT status FROM jobs WHERE job_id = ?", (row["job_id"],)
+                ).fetchone()[0]
+                if attempt is None:
+                    raise RuntimeError("committed attempt is missing")
+                content, record = _verify_commit(
+                    row, jobs[row["job_id"]], status, attempt
+                )
+                artifact = content.encode("utf-8")
+                key = row["job_id"]
+                del row, content
+                yield key, artifact, record
+                del artifact, record
+        finally:
+            if not self._closed:
+                cursor.close()
+
+
+@contextmanager
+def read_committed_snapshot(output: Path) -> Iterator[CommittedSnapshot]:
+    """Validate and stream committed outcomes without locking or resuming.
+
+    Schema, hashes and scheduler invariants use the same validation as status
+    and resume. Manifest, headers, history and artifacts share a single SQLite
+    read transaction even if a coordinator commits concurrently. Pending jobs
+    are represented in status; consumers decide whether completion is required.
+    """
+    if not isinstance(output, Path) or ".." in output.parts:
+        raise ValueError("journal output must be a Path without traversal")
+    absolute = output.absolute()
+    if any(path.is_symlink() for path in (absolute, *absolute.parents)):
+        raise ValueError("journal paths must not be symlinks")
+    with _reader(output) as db:
+        stored = _load(db)
+        records = tuple(
+            _decode(row["record"], row["record_sha256"])
+            for row in db.execute(
+                "SELECT record, record_sha256 FROM commits ORDER BY job_id"
+            )
+        )
+        snapshot = CommittedSnapshot(
+            stored.manifest, stored.jobs, _snapshot(db, stored), records, db
+        )
+        try:
+            yield snapshot
+        finally:
+            snapshot._closed = True
+
+
 def _lock(output: Path, *, create: bool) -> int:
     if fcntl is None:
         raise RuntimeError("durable scheduling requires POSIX advisory file locks")

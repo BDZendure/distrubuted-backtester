@@ -93,6 +93,56 @@ def test_create_persists_inputs_before_claim_and_uses_required_pragmas(
     assert journal._connection.execute("PRAGMA busy_timeout").fetchone()[0] > 0
 
 
+def test_read_committed_snapshot_is_consistent_without_writer_lock(
+    journal: Journal,
+) -> None:
+    import distributed_backtester.scheduler.journal as module
+
+    assert hasattr(module, "read_committed_snapshot"), "committed reader is missing"
+    first = journal.claim(now=100)
+    assert first is not None
+    journal.commit(first, outcome(first.job), now=101)
+    before = journal.snapshot()
+    with module.read_committed_snapshot(journal.output) as snapshot:
+        assert snapshot.manifest == manifest()
+        assert snapshot.jobs == JOBS
+        assert len(snapshot.records) == 1
+        second = journal.claim(now=102)
+        assert second is not None
+        journal.commit(second, outcome(second.job), now=103)
+        assert snapshot.status == before
+        content, record = outcome_artifact(first.job, outcome(first.job))
+        assert list(snapshot.iter_artifacts()) == [
+            (first.job.job_id, content.encode(), record)
+        ]
+    assert journal.generation == 1 and journal.all_terminal()
+    with pytest.raises(RuntimeError, match="closed"):
+        list(snapshot.iter_artifacts())
+
+
+def test_read_committed_snapshot_validates_corruption_and_never_creates(
+    tmp_path: Path,
+) -> None:
+    import distributed_backtester.scheduler.journal as module
+
+    assert hasattr(module, "read_committed_snapshot"), "committed reader is missing"
+    output = tmp_path / "run"
+    with pytest.raises(FileNotFoundError), module.read_committed_snapshot(output):
+        pass
+    assert not output.exists()
+    with Journal.create(output, manifest(), RetryPolicy(), now=100) as journal:
+        attempt = journal.claim(now=100)
+        assert attempt is not None
+        journal.commit(attempt, outcome(attempt.job), now=101)
+    with connection(output) as db:
+        db.execute("UPDATE commits SET content='{}'")
+    with (
+        pytest.raises(RuntimeError, match=r"artifact|hash"),
+        module.read_committed_snapshot(output),
+    ):
+        pass
+
+
 @pytest.mark.parametrize(
     "replacement",
     [
