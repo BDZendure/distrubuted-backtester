@@ -6,9 +6,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from time import monotonic, perf_counter, sleep, time
 
+from distributed_backtester.cli_lifecycle import add_cleanup_note, defer_cleanup_signals
 from distributed_backtester.experiment_artifacts import index_record
 from distributed_backtester.experiments import ExperimentSummary
 from distributed_backtester.jobs import canonical_json
+from distributed_backtester.operational_logging import emit_event, event_context
 from distributed_backtester.provenance import capture_environment
 from distributed_backtester.results import write_text
 from distributed_backtester.scheduler.journal import Journal
@@ -21,6 +23,31 @@ class Clock:
     utc: Callable[[], float] = time
     monotonic: Callable[[], float] = monotonic
     sleep: Callable[[float], None] = sleep
+
+
+def _close_runtime(
+    runtime: AttemptRuntime, *, primary: BaseException | None = None
+) -> None:
+    with defer_cleanup_signals():
+        try:
+            runtime.close()
+        except Exception as cleanup:
+            emit_event(
+                "runtime_cleanup_failed",
+                level="ERROR",
+                detail=str(cleanup),
+                error_type=type(cleanup).__name__,
+                primary_type=type(primary).__name__ if primary is not None else None,
+            )
+            if isinstance(primary, KeyboardInterrupt):
+                add_cleanup_note(primary, f"runtime cleanup failed: {cleanup}")
+                raise primary from cleanup
+            if primary is not None:
+                raise RuntimeError(
+                    f"{type(primary).__name__}: {primary}; "
+                    f"runtime cleanup failed: {cleanup}"
+                ) from primary
+            raise
 
 
 def _sync_directory(path: Path) -> None:
@@ -90,6 +117,55 @@ def run_durable(
     *,
     clock: Clock | None = None,
 ) -> ExperimentSummary:
+    with event_context(
+        experiment_id=str(journal.manifest["experiment_id"]),
+        generation=journal.generation,
+        backend=runtime.name,
+    ):
+        emit_event("durable_started", workers=runtime.workers)
+        try:
+            summary = _run_durable(journal, runtime, clock=clock)
+        except BaseException as error:
+            emit_event("durable_failed", level="ERROR", error_type=type(error).__name__)
+            raise
+        emit_event(
+            "durable_finished", succeeded=summary.succeeded, failed=summary.failed
+        )
+        return summary
+
+
+def _attempt_event(
+    event: str,
+    attempt: AttemptSpec,
+    *,
+    disposition: str | None = None,
+    reason: str | None = None,
+    error_type: str | None = None,
+) -> None:
+    level = "INFO"
+    if event == "attempt_failed":
+        level = "WARNING" if disposition == "retry" else "ERROR"
+    elif event == "result_rejected":
+        level = "WARNING"
+    emit_event(
+        event,
+        level=level,
+        job_id=attempt.job.job_id,
+        attempt_id=attempt.attempt_id,
+        attempt_number=attempt.number,
+        attempt_generation=attempt.generation,
+        disposition=disposition,
+        reason=reason,
+        error_type=error_type,
+    )
+
+
+def _run_durable(
+    journal: Journal,
+    runtime: AttemptRuntime,
+    *,
+    clock: Clock | None = None,
+) -> ExperimentSummary:
     """Run pending work, then repair/publish exports from authoritative commits.
 
     The caller owns the journal session and must close it. The runtime is closed
@@ -122,6 +198,7 @@ def run_durable(
                     active[attempt.attempt_id] = (
                         claiming_mono + journal.policy.job_timeout_seconds
                     )
+                    _attempt_event("attempt_claimed", attempt)
                     runtime.submit(attempt)
                 if not active:
                     eligible = journal.next_eligible()
@@ -139,11 +216,18 @@ def run_durable(
                         or received_utc >= leases[attempt_id].deadline_utc
                     ):
                         runtime.cancel(attempt_id)
-                        journal.fail(
+                        disposition = journal.fail(
                             leases[attempt_id],
                             JobFailure("JobTimeout", "attempt deadline expired"),
                             now=now(),
                             reason="timeout",
+                        )
+                        _attempt_event(
+                            "attempt_failed",
+                            leases[attempt_id],
+                            disposition=disposition,
+                            reason="timeout",
+                            error_type="JobTimeout",
                         )
                         del active[attempt_id]
                         del leases[attempt_id]
@@ -162,15 +246,29 @@ def run_durable(
                             committed = journal.commit(
                                 attempt, reply.outcome, now=received_utc
                             )
+                            _attempt_event(
+                                "result_rejected"
+                                if committed == "stale"
+                                else "result_committed",
+                                attempt,
+                                disposition=committed,
+                            )
                             if committed == "stale" and reply.attempt_id in active:
                                 runtime.cancel(reply.attempt_id)
-                                journal.fail(
+                                disposition = journal.fail(
                                     attempt,
                                     JobFailure(
                                         "JobTimeout", "attempt deadline expired"
                                     ),
                                     now=now(),
                                     reason="timeout",
+                                )
+                                _attempt_event(
+                                    "attempt_failed",
+                                    attempt,
+                                    disposition=disposition,
+                                    reason="timeout",
+                                    error_type="JobTimeout",
                                 )
                         else:
                             if reply.outcome.failure.error_type in {
@@ -182,30 +280,38 @@ def run_durable(
                                     f"{reply.outcome.failure.error_type}: "
                                     f"{reply.outcome.failure.message}"
                                 )
-                            journal.fail(
+                            disposition = journal.fail(
                                 attempt, reply.outcome.failure, now=received_utc
                             )
+                            _attempt_event(
+                                "attempt_failed",
+                                attempt,
+                                disposition=disposition,
+                                reason="failure",
+                                error_type=reply.outcome.failure.error_type,
+                            )
                     elif reply.failure is not None:
-                        journal.fail(
+                        disposition = journal.fail(
                             attempt,
                             reply.failure,
                             now=received_utc,
                             reason="worker_failure",
                             diagnostic=reply.diagnostic,
                         )
+                        _attempt_event(
+                            "attempt_failed",
+                            attempt,
+                            disposition=disposition,
+                            reason="worker_failure",
+                            error_type=reply.failure.error_type,
+                        )
                     else:
                         raise RuntimeError("worker reply contains no outcome")
                     active.pop(reply.attempt_id, None)
                     leases.pop(reply.attempt_id, None)
     except BaseException as primary:
-        try:
-            runtime.close()
-        except Exception as cleanup:
-            raise RuntimeError(
-                f"{type(primary).__name__}: {primary}; "
-                f"runtime cleanup failed: {cleanup}"
-            ) from primary
+        _close_runtime(runtime, primary=primary)
         raise
     else:
-        runtime.close()
+        _close_runtime(runtime)
     return _export(journal, runtime, perf_counter() - started)

@@ -13,23 +13,43 @@ from distributed_backtester.backends.base import ExecutionBackend
 from distributed_backtester.backends.process import ProcessBackend
 from distributed_backtester.backends.ray import RayBackend
 from distributed_backtester.backends.sequential import SequentialBackend
+from distributed_backtester.cli_lifecycle import (
+    CommandInterrupted,
+    SignalState,
+    cli_signals,
+)
+from distributed_backtester.cli_options import (
+    ExplicitAppend,
+    configuration_defaults,
+    protect_configuration,
+    requested_log_level,
+)
 from distributed_backtester.data import load_csv
 from distributed_backtester.experiments import run_experiment
 from distributed_backtester.jobs import metadata_record
 from distributed_backtester.market_data import load_dataset
 from distributed_backtester.models import BacktestConfig, StrategyConfig
 from distributed_backtester.money import parse_money
+from distributed_backtester.operational_logging import LEVELS, emit_event, log_session
+from distributed_backtester.operational_status import read_status
 from distributed_backtester.results import serialize_result, write_result
 from distributed_backtester.scheduler.experiments import (
     resume_experiment,
     start_experiment,
 )
-from distributed_backtester.scheduler.journal import read_status
 from distributed_backtester.scheduler.models import RetryPolicy
 from distributed_backtester.simulation import run_backtest
 
 
-def _parser() -> argparse.ArgumentParser:
+def _parser(
+    configured_command: str | None = None,
+    defaults: dict[str, object] | None = None,
+) -> argparse.ArgumentParser:
+    values = {} if defaults is None else defaults
+
+    def required(command: str, name: str) -> bool:
+        return command != configured_command or name not in values
+
     parser = argparse.ArgumentParser(prog="distributed-backtester")
     parser.add_argument(
         "--version", action="version", version=version("distributed-backtester")
@@ -39,11 +59,16 @@ def _parser() -> argparse.ArgumentParser:
         "backtest", help="run one daily long-only SMA simulation"
     )
     backtest.add_argument(
-        "--data", type=Path, required=True, help="OHLCV CSV or project Parquet path"
+        "--data",
+        type=Path,
+        required=required("backtest", "data"),
+        help="OHLCV CSV or project Parquet path",
     )
     _data_options(backtest)
-    backtest.add_argument("--symbol", required=True)
-    backtest.add_argument("--price-basis", choices=["raw"], required=True)
+    backtest.add_argument("--symbol", required=required("backtest", "symbol"))
+    backtest.add_argument(
+        "--price-basis", choices=["raw"], required=required("backtest", "price_basis")
+    )
     backtest.add_argument("--fast", type=int, default=2)
     backtest.add_argument("--slow", type=int, default=3)
     backtest.add_argument(
@@ -56,15 +81,24 @@ def _parser() -> argparse.ArgumentParser:
         "--output", type=Path, help="JSON destination; otherwise stdout"
     )
     backtest.add_argument(
-        "--overwrite", action="store_true", help="replace an existing output"
+        "--overwrite",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="replace an existing output",
     )
     sweep = commands.add_parser("sweep", help="run a grid of independent SMA jobs")
-    sweep.add_argument("--data", type=Path, required=True)
+    sweep.add_argument("--data", type=Path, required=required("sweep", "data"))
     _data_options(sweep)
-    sweep.add_argument("--symbol", required=True)
-    sweep.add_argument("--price-basis", choices=["raw"], required=True)
-    sweep.add_argument("--fast", type=int, nargs="+", required=True)
-    sweep.add_argument("--slow", type=int, nargs="+", required=True)
+    sweep.add_argument("--symbol", required=required("sweep", "symbol"))
+    sweep.add_argument(
+        "--price-basis", choices=["raw"], required=required("sweep", "price_basis")
+    )
+    sweep.add_argument(
+        "--fast", type=int, nargs="+", required=required("sweep", "fast")
+    )
+    sweep.add_argument(
+        "--slow", type=int, nargs="+", required=required("sweep", "slow")
+    )
     sweep.add_argument("--initial-cash", default="1000")
     sweep.add_argument("--fee-bps", type=int, default=0)
     sweep.add_argument(
@@ -72,7 +106,10 @@ def _parser() -> argparse.ArgumentParser:
     )
     _ray_options(sweep)
     sweep.add_argument(
-        "--durable", action="store_true", help="journal and retry Ray jobs"
+        "--durable",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="journal and retry Ray jobs",
     )
     sweep.add_argument(
         "--max-attempts", type=int, help="durable total attempts, default 3"
@@ -86,16 +123,19 @@ def _parser() -> argparse.ArgumentParser:
     sweep.add_argument(
         "--output-dir",
         type=Path,
-        required=True,
+        required=required("sweep", "output_dir"),
         help="new directory for manifest, per-job results, and index",
     )
     resume = commands.add_parser("resume", help="recover a durable Ray experiment")
-    resume.add_argument("--data", type=Path, required=True)
+    resume.add_argument("--data", type=Path, required=required("resume", "data"))
     _data_options(resume)
-    resume.add_argument("--output-dir", type=Path, required=True)
+    resume.add_argument(
+        "--output-dir", type=Path, required=required("resume", "output_dir")
+    )
     _ray_options(resume)
     status = commands.add_parser("status", help="read durable job and attempt state")
     status.add_argument("--output-dir", type=Path, required=True)
+    status.add_argument("--job-id", help="select one job while retaining total counts")
     convert = commands.add_parser(
         "convert-data", help="convert validated raw CSV to exact versioned Parquet"
     )
@@ -116,6 +156,15 @@ def _parser() -> argparse.ArgumentParser:
     querying.add_argument("--database", type=Path, required=True)
     querying.add_argument("--snapshot-id")
     querying.add_argument("--limit", type=int, default=20)
+    configured = {"backtest": backtest, "sweep": sweep, "resume": resume}
+    for command in configured.values():
+        command.add_argument(
+            "--config", type=Path, help="TOML file of command defaults"
+        )
+    for command in [backtest, sweep, resume, status, convert, importing, querying]:
+        command.add_argument("--log-level", choices=LEVELS, default="OFF")
+    if configured_command is not None:
+        configured[configured_command].set_defaults(**values)
     return parser
 
 
@@ -135,7 +184,7 @@ def _ray_options(command: argparse.ArgumentParser) -> None:
     command.add_argument("--cpus-per-worker", type=float)
     command.add_argument(
         "--worker-resource",
-        action="append",
+        action=ExplicitAppend,
         default=[],
         help="Ray custom resource NAME=QUANTITY per worker",
     )
@@ -199,8 +248,63 @@ def _check_output(source: Path, output: Path | None) -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    options = _parser().parse_args(argv)
+    arguments = sys.argv[1:] if argv is None else list(argv)
     try:
+        command, defaults = configuration_defaults(arguments)
+    except (ValueError, OSError) as error:
+        level = requested_log_level(arguments)
+        with log_session(level):
+            emit_event(
+                "command_failed",
+                level="ERROR",
+                error_type=type(error).__name__,
+                detail=str(error),
+                exit_code=2,
+            )
+        if level == "OFF":
+            print(f"error: {error}", file=sys.stderr)
+        return 2
+    options = _parser(command, defaults).parse_args(arguments)
+    with log_session(options.log_level):
+        emit_event("command_started", command=options.command)
+        signal_state = SignalState()
+        try:
+            with cli_signals() as signal_state:
+                status = _execute_options(options)
+        except CommandInterrupted as error:
+            emit_event(
+                "command_interrupted",
+                level="WARNING",
+                command=options.command,
+                signal=error.signum,
+                exit_code=error.exit_code,
+                detail=str(error),
+            )
+            if options.log_level == "OFF":
+                print(f"error: {error}", file=sys.stderr)
+            return error.exit_code
+        except KeyboardInterrupt as error:
+            exit_code = 128 + (signal_state.signum or 2)
+            detail = "; ".join(
+                [str(error) or "interrupted", *getattr(error, "__notes__", ())]
+            )
+            emit_event(
+                "command_interrupted",
+                level="WARNING",
+                exit_code=exit_code,
+                signal=signal_state.signum,
+                detail=detail,
+            )
+            if options.log_level == "OFF":
+                print(f"error: {detail}", file=sys.stderr)
+            return exit_code
+        emit_event("command_finished", command=options.command, exit_code=status)
+        return status
+
+
+def _execute_options(options: argparse.Namespace) -> int:
+    try:
+        protect_configuration(options)
         if options.command == "convert-data":
             from distributed_backtester.parquet_data import write_parquet
 
@@ -235,7 +339,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(json.dumps(report, sort_keys=True))
             return 0
         if options.command == "status":
-            print(json.dumps(read_status(options.output_dir), sort_keys=True))
+            report = (
+                read_status(options.output_dir)
+                if options.job_id is None
+                else read_status(options.output_dir, job_id=options.job_id)
+            )
+            print(json.dumps(report, sort_keys=True))
             return 0
         if options.command in {"sweep", "resume"}:
             policy = None
@@ -330,23 +439,37 @@ def main(argv: Sequence[str] | None = None) -> int:
             data_format=options.data_format,
             expected_version=options.dataset_version,
         )
+        emit_event("backtest_started", symbol=options.symbol)
         result = run_backtest(config, dataset)
         if options.output is None:
             sys.stdout.write(serialize_result(result))
         else:
             write_result(result, options.output, overwrite=options.overwrite)
+        emit_event("backtest_finished", symbol=options.symbol)
     except FileExistsError as error:
         guidance = (
             "choose a new output directory, or use resume for a durable experiment"
             if options.command in {"sweep", "resume"}
             else "use --overwrite to replace it"
         )
-        print(
-            f"error: output exists; {guidance}: {error}",
-            file=sys.stderr,
+        detail = f"output exists; {guidance}: {error}"
+        emit_event(
+            "command_failed",
+            level="ERROR",
+            error_type=type(error).__name__,
+            detail=detail,
         )
+        if options.log_level == "OFF":
+            print(f"error: {detail}", file=sys.stderr)
         return 2
     except (ValueError, OSError, RuntimeError, sqlite3.Error) as error:
-        print(f"error: {error}", file=sys.stderr)
+        emit_event(
+            "command_failed",
+            level="ERROR",
+            error_type=type(error).__name__,
+            detail=str(error),
+        )
+        if options.log_level == "OFF":
+            print(f"error: {error}", file=sys.stderr)
         return 2
     return 0

@@ -4,14 +4,27 @@ import importlib
 import math
 import os
 import sys
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Callable, Generator, Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from time import perf_counter
-from types import ModuleType
+from types import FrameType, ModuleType
 from typing import Any, Protocol, cast
 
+from distributed_backtester.cli_lifecycle import (
+    add_cleanup_note,
+    defer_cleanup_signals,
+    owned_signal_handler,
+    preserve_signal_handlers,
+)
 from distributed_backtester.jobs import JobSpec
 from distributed_backtester.models import MarketDataset
 from distributed_backtester.money import require_integer
+from distributed_backtester.operational_logging import (
+    LogState,
+    capture_logging,
+    emit_event,
+    worker_session,
+)
 from distributed_backtester.provenance import (
     ImplementationIdentity,
     current_implementation,
@@ -21,6 +34,37 @@ from distributed_backtester.worker import JobOutcome, execute_job
 RAY_VERSION = "2.59.0"
 DEFAULT_STORE_BYTES = 134_217_728
 MAX_RESOURCE_QUANTITY = 100_000_000_000_000
+
+
+class _SignalRegistration(Protocol):
+    set_sigterm_handler: Callable[[Callable[[int, FrameType | None], None]], None]
+
+
+@contextmanager
+def _protect_startup_signal_registration() -> Iterator[None]:
+    """Keep the owned CLI bridge through Ray 2.59.0's init registration.
+
+    Ray exposes no public switch for its Python SIGTERM registration. Both its
+    worker and Node use this version-bound helper. Adapt only that helper while
+    the main-thread CLI owns the signals; library calls and calls from other
+    threads retain Ray's original behavior. Never replace signal.signal itself.
+    The previous setter still performs the real platform-specific registration.
+    """
+    if owned_signal_handler() is None:
+        yield
+        return
+    utils = cast(_SignalRegistration, importlib.import_module("ray._private.utils"))
+    setter = utils.set_sigterm_handler
+
+    def register(handler: Callable[[int, FrameType | None], None]) -> None:
+        setter(owned_signal_handler() or handler)
+
+    try:
+        utils.set_sigterm_handler = register
+        yield
+    finally:
+        with defer_cleanup_signals():
+            utils.set_sigterm_handler = setter
 
 
 class _ReadyMethod(Protocol):
@@ -41,7 +85,10 @@ class _Actor(Protocol):
 
 class _ActorClass(Protocol):
     def remote(
-        self, dataset: object, implementation: ImplementationIdentity
+        self,
+        dataset: object,
+        implementation: ImplementationIdentity,
+        log_state: LogState | None = None,
     ) -> _Actor: ...
 
 
@@ -122,7 +169,10 @@ class _SimulationWorker:
     """An actor holds one decoded dataset; strategy state is created per job."""
 
     def __init__(
-        self, dataset: MarketDataset, implementation: ImplementationIdentity
+        self,
+        dataset: MarketDataset,
+        implementation: ImplementationIdentity,
+        log_state: LogState | None = None,
     ) -> None:
         if current_implementation() != implementation:
             raise RuntimeError(
@@ -131,6 +181,9 @@ class _SimulationWorker:
         self.dataset = dataset
         self.implementation = implementation
         self.jobs_completed = 0
+        self.log_state = log_state
+        with worker_session(log_state):
+            emit_event("worker_initialized", component="worker")
 
     def ready(self) -> dict[str, object]:
         return {
@@ -143,7 +196,8 @@ class _SimulationWorker:
         }
 
     def execute(self, job: JobSpec) -> JobOutcome:
-        outcome = execute_job(job, self.dataset, self.implementation)
+        with worker_session(self.log_state):
+            outcome = execute_job(job, self.dataset, self.implementation)
         self.jobs_completed += 1
         return outcome
 
@@ -176,6 +230,7 @@ class _RayPool:
         self.dataset = dataset
         self.implementation = implementation
         self.worker_type = worker_type
+        self.log_state = capture_logging()
         self.ray: ModuleType
         self.actor_class: _ActorClass
         self.shared_dataset: object = None
@@ -191,6 +246,7 @@ class _RayPool:
 
     def start(self) -> None:
         backend = self.backend
+        self.log_state = capture_logging()
         ray = self.ray = _require_ray()
         if ray.is_initialized():
             raise RuntimeError(
@@ -216,7 +272,8 @@ class _RayPool:
             )
         # Own partial initialization too; never take over an existing driver.
         self._owns_connection = True
-        context = ray.init(**options)
+        with preserve_signal_handlers(), _protect_startup_signal_registration():
+            context = ray.init(**options)
         self.timings["startup_seconds"] = perf_counter() - start
         nodes = ray.nodes()
         requests = {"CPU": backend.cpus_per_worker, **backend.resources}
@@ -272,9 +329,22 @@ class _RayPool:
             timeout=backend.startup_timeout_seconds,
         )
         self.timings["actors_ready_seconds"] = perf_counter() - creating
+        if self.log_state.level != "OFF":
+            for worker in cast(list[dict[str, object]], self.diagnostics["workers"]):
+                emit_event(
+                    "worker_ready",
+                    worker_pid=worker.get("pid"),
+                    node_id=worker.get("node_id"),
+                )
 
     def create_actor(self) -> _Actor:
-        actor = self.actor_class.remote(self.shared_dataset, self.implementation)
+        actor = (
+            self.actor_class.remote(self.shared_dataset, self.implementation)
+            if self.log_state.level == "OFF"
+            else self.actor_class.remote(
+                self.shared_dataset, self.implementation, self.log_state
+            )
+        )
         self.actors.append(actor)
         return actor
 
@@ -283,6 +353,10 @@ class _RayPool:
         self.actors.remove(actor)
 
     def close(self, *, primary_error: BaseException | None = None) -> None:
+        with defer_cleanup_signals():
+            self._close(primary_error=primary_error)
+
+    def _close(self, *, primary_error: BaseException | None = None) -> None:
         if self._closed:
             return
         self._closed = True
@@ -305,6 +379,16 @@ class _RayPool:
             self.timings["shutdown_seconds"] = perf_counter() - stopping
         if self.cleanup_errors:
             message = "Ray cleanup failed: " + "; ".join(self.cleanup_errors)
+            emit_event(
+                "runtime_cleanup_failed",
+                level="ERROR",
+                detail=message,
+                error_type="RuntimeError",
+                primary_type=type(primary_error).__name__ if primary_error else None,
+            )
+            if isinstance(primary_error, KeyboardInterrupt):
+                add_cleanup_note(primary_error, message)
+                raise primary_error
             if primary_error is not None:
                 raise RuntimeError(
                     f"{type(primary_error).__name__}: {primary_error}; {message}"

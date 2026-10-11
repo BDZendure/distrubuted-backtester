@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from distributed_backtester.jobs import JobSpec
 from distributed_backtester.models import BacktestResult, MarketDataset
+from distributed_backtester.operational_logging import emit_event
 from distributed_backtester.provenance import ImplementationIdentity
 from distributed_backtester.simulation import ENGINE_ID, run_backtest
 
@@ -38,6 +39,35 @@ class JobOutcome:
 
 
 def execute_job(
+    job: JobSpec, dataset: MarketDataset, implementation: ImplementationIdentity
+) -> JobOutcome:
+    emit_event("job_started", component="worker", job_id=job.job_id)
+    try:
+        outcome = _execute_job(job, dataset, implementation)
+    except BaseException as error:
+        emit_event(
+            "job_interrupted",
+            level="ERROR",
+            component="worker",
+            job_id=job.job_id,
+            error_type=type(error).__name__,
+        )
+        raise
+    if outcome.failure is None:
+        emit_event("job_finished", component="worker", job_id=job.job_id)
+    else:
+        emit_event(
+            "job_failed",
+            level="ERROR",
+            component="worker",
+            job_id=job.job_id,
+            error_type=outcome.failure.error_type,
+            detail=outcome.failure.message,
+        )
+    return outcome
+
+
+def _execute_job(
     job: JobSpec, dataset: MarketDataset, implementation: ImplementationIdentity
 ) -> JobOutcome:
     if job.dataset != dataset.metadata:

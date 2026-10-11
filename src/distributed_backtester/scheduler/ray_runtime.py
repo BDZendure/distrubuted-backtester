@@ -6,7 +6,9 @@ from time import perf_counter
 from typing import Protocol, cast
 
 from distributed_backtester.backends import ray as ray_backend
+from distributed_backtester.cli_lifecycle import defer_cleanup_signals
 from distributed_backtester.models import MarketDataset
+from distributed_backtester.operational_logging import event_context, worker_session
 from distributed_backtester.provenance import ImplementationIdentity
 from distributed_backtester.scheduler.models import AttemptReply, AttemptSpec
 from distributed_backtester.worker import JobFailure, JobOutcome
@@ -23,12 +25,20 @@ class _AttemptActor(ray_backend._Actor, Protocol):
 
 class _AttemptWorker(ray_backend._SimulationWorker):
     def execute_attempt(self, attempt: AttemptSpec) -> AttemptReply:
-        return AttemptReply(
-            attempt.attempt_id,
-            attempt.generation,
-            self.execute(attempt.job),
-            None,
-        )
+        with (
+            worker_session(self.log_state),
+            event_context(
+                attempt_id=attempt.attempt_id,
+                generation=attempt.generation,
+                attempt_number=attempt.number,
+            ),
+        ):
+            return AttemptReply(
+                attempt.attempt_id,
+                attempt.generation,
+                self.execute(attempt.job),
+                None,
+            )
 
 
 class RayAttemptRuntime:
@@ -75,8 +85,10 @@ class RayAttemptRuntime:
         try:
             self._pool.start()
             self._idle.extend(self._pool.actors)
-        except Exception as error:
+        except BaseException as error:
             self._close(primary_error=error)
+            if not isinstance(error, Exception):
+                raise
             raise RuntimeError(f"Ray execution failed: {error}") from error
 
     def _require_started(self) -> None:
@@ -293,13 +305,14 @@ class RayAttemptRuntime:
         self._close()
 
     def _close(self, *, primary_error: BaseException | None = None) -> None:
-        if self._closed:
-            return
-        self._closed = True
-        self._idle.clear()
-        self._pending.clear()
-        self._active.clear()
-        self._readiness.clear()
-        self._delivered.clear()
-        self._replies.clear()
-        self._pool.close(primary_error=primary_error)
+        with defer_cleanup_signals():
+            if self._closed:
+                return
+            self._closed = True
+            self._idle.clear()
+            self._pending.clear()
+            self._active.clear()
+            self._readiness.clear()
+            self._delivered.clear()
+            self._replies.clear()
+            self._pool.close(primary_error=primary_error)

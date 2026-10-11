@@ -14,6 +14,7 @@ from distributed_backtester.experiment_artifacts import (
 from distributed_backtester.jobs import JobSpec, canonical_json, expand_grid
 from distributed_backtester.market_data import DataFormat, DatasetCache, load_dataset
 from distributed_backtester.models import MarketDataset
+from distributed_backtester.operational_logging import emit_event, event_context
 from distributed_backtester.provenance import (
     ImplementationIdentity,
     capture_environment,
@@ -45,6 +46,54 @@ def collect_experiment(
     source_path: Path | None = None,
     setup_timings: dict[str, float] | None = None,
 ) -> ExperimentSummary:
+    start = perf_counter() if started is None else started
+    manifest_started = perf_counter()
+    manifest = manifest_record(jobs, dataset.metadata, implementation, membership)
+    with event_context(
+        experiment_id=str(manifest["experiment_id"]), backend=backend.name
+    ):
+        emit_event("experiment_started", submitted=len(jobs), workers=backend.workers)
+        try:
+            summary = _collect_experiment(
+                jobs,
+                dataset,
+                implementation,
+                output,
+                backend,
+                manifest=manifest,
+                started=start,
+                manifest_started=manifest_started,
+                source_path=source_path,
+                setup_timings=setup_timings,
+            )
+        except BaseException as error:
+            emit_event(
+                "experiment_failed",
+                level="ERROR",
+                error_type=type(error).__name__,
+            )
+            raise
+        emit_event(
+            "experiment_finished",
+            succeeded=summary.succeeded,
+            failed=summary.failed,
+        )
+        return summary
+
+
+def _collect_experiment(
+    jobs: Sequence[JobSpec],
+    dataset: MarketDataset,
+    implementation: ImplementationIdentity,
+    output: Path,
+    backend: ExecutionBackend,
+    *,
+    manifest: dict[str, object],
+    started: float,
+    manifest_started: float,
+    source_path: Path | None,
+    setup_timings: dict[str, float] | None,
+) -> ExperimentSummary:
     """Publish index.json last, only after all expected outcomes are exported.
 
     Existing directories are refused. A fatal backend/protocol/export error
@@ -53,10 +102,8 @@ def collect_experiment(
     are promised here. Full result retention is bounded by backend buffering.
     Job definitions, membership, and compact records remain O(number of jobs).
     """
-    start = perf_counter() if started is None else started
-    manifest_started = perf_counter()
+    start = started
     expected = {job.job_id: job for job in jobs}
-    manifest = manifest_record(jobs, dataset.metadata, implementation, membership)
     experiment_id = str(manifest["experiment_id"])
     output.mkdir(parents=True, exist_ok=False)
     write_text(canonical_json(manifest) + "\n", output / "manifest.json")
@@ -84,6 +131,11 @@ def collect_experiment(
             job = expected[outcome.job_id]
             content, record = outcome_artifact(job, outcome)
             write_text(content, output / str(record["artifact"]))
+            emit_event(
+                "job_exported",
+                job_id=outcome.job_id,
+                status=str(record["status"]),
+            )
             records[outcome.job_id] = record
             del content, outcome
             export_seconds += perf_counter() - exporting

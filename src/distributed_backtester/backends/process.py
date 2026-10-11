@@ -1,12 +1,19 @@
 """Bounded spawn execution with one immutable dataset per initialized worker."""
 
 import multiprocessing
-from collections.abc import Generator, Sequence
+from collections.abc import Callable, Generator, Sequence
 from concurrent.futures import FIRST_COMPLETED, Future, ProcessPoolExecutor, wait
+from functools import partial
 
 from distributed_backtester.jobs import JobSpec
 from distributed_backtester.models import MarketDataset
 from distributed_backtester.money import require_integer
+from distributed_backtester.operational_logging import (
+    LogState,
+    capture_logging,
+    emit_event,
+    worker_session,
+)
 from distributed_backtester.provenance import (
     ImplementationIdentity,
     current_implementation,
@@ -15,20 +22,29 @@ from distributed_backtester.worker import JobOutcome, execute_job
 
 _DATASET: MarketDataset | None = None
 _IMPLEMENTATION: ImplementationIdentity | None = None
+_LOG_STATE: LogState | None = None
 
 
-def _initialize(dataset: MarketDataset, implementation: ImplementationIdentity) -> None:
-    global _DATASET, _IMPLEMENTATION
+def _initialize(
+    dataset: MarketDataset,
+    implementation: ImplementationIdentity,
+    log_state: LogState | None = None,
+) -> None:
+    global _DATASET, _IMPLEMENTATION, _LOG_STATE
     if current_implementation() != implementation:
         raise RuntimeError("installed implementation differs in worker initialization")
     _DATASET = dataset
     _IMPLEMENTATION = implementation
+    _LOG_STATE = log_state
+    with worker_session(log_state):
+        emit_event("worker_initialized", component="worker")
 
 
 def _execute(job: JobSpec) -> JobOutcome:
     if _DATASET is None or _IMPLEMENTATION is None:
         raise RuntimeError("worker was not initialized")
-    return execute_job(job, _DATASET, _IMPLEMENTATION)
+    with worker_session(_LOG_STATE):
+        return execute_job(job, _DATASET, _IMPLEMENTATION)
 
 
 class ProcessBackend:
@@ -55,10 +71,16 @@ class ProcessBackend:
         iterator = iter(jobs)
         pending: dict[Future[JobOutcome], str] = {}
         exhausted = False
+        log_state = capture_logging()
+        initializer: Callable[[MarketDataset, ImplementationIdentity], None] = (
+            _initialize
+            if log_state.level == "OFF"
+            else partial(_initialize, log_state=log_state)
+        )
         with ProcessPoolExecutor(
             max_workers=self.workers,
             mp_context=multiprocessing.get_context("spawn"),
-            initializer=_initialize,
+            initializer=initializer,
             initargs=(dataset, implementation),
         ) as pool:
             try:
