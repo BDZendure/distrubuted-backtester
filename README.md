@@ -26,6 +26,9 @@ Ray is optional. Phase 4 requires explicit approval.
   [local scaling results](docs/benchmarks/phase-2/results.md).
 - [Ray cluster instructions](docs/ray-clusters.md) and
   [Ray execution decision](docs/decisions/0005-ray-actor-execution.md).
+- [Phase 3 completion report](docs/phase-3-report.md) and
+  [cold Ray comparisons](docs/benchmarks/phase-3/results.md), including slower
+  Ray results and unavailable memory coverage.
 - [Phase 1 report](docs/phase-1-report.md), with the sample ledger, and
   [Phase 0 report](docs/phase-0-report.md) record earlier milestones.
 

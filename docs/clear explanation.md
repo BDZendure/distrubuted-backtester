@@ -442,6 +442,21 @@ If a Ray worker or infrastructure fails, the experiment can stop with partial
 files and no final index. There are no automatic retries or resume yet. That is
 the next phase and requires your approval.
 
+### What our measurements showed
+
+On the measured Mac, 64 backtests with 4,096 price bars each took a median of
+**2.013 seconds sequentially**, **1.374 seconds with two processes**, and
+**5.371 seconds with two Ray actors**. These include startup, saving results,
+and shutdown. Ray took longer for these workloads. A cluster already running
+would need a separate benchmark.
+
+All 56 trials and warmups produced matching answers for their workload. We could
+not measure complete private memory: macOS denied child memory reads, and some
+actor processes could not be safely associated with the experiment by our
+observer. Missing readings stay marked unavailable. Read the
+[results](benchmarks/phase-3/results.md) and [completion report](phase-3-report.md)
+for the evidence and limitations.
+
 ## What is planned next
 
 | Phase | Planned capability |

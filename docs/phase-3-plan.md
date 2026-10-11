@@ -82,24 +82,24 @@ Files: dedicated local Ray benchmark module/tests, benchmark results, ADR,
 README, architecture/roadmap/dependencies/testing/benchmarking docs, beginner and
 technical explanations, Phase 3 report.
 
-- [ ] Write failing benchmark orchestration/measurement tests.
-- [ ] Compare sequential, process, and owned local Ray on identical code,
+- [x] Write failing benchmark orchestration/measurement tests.
+- [x] Compare sequential, process, and owned local Ray on identical code,
       interpreter, data, configurations, and artifact verification.
-- [ ] Include Ray import/startup, actor readiness, dataset placement, export,
+- [x] Include Ray import/startup, actor readiness, dataset placement, export,
       shutdown, and process exit in cold command timings. Record component times.
-- [ ] Warm up once per configuration, rotate order, retain repeated raw samples.
-- [ ] Inventory all owned local Ray services/actors, including non-driver
+- [x] Warm up once per configuration, rotate order, retain repeated raw samples.
+- [x] Inventory all owned local Ray services/actors, including non-driver
       descendants. Memory observations must have explicit process scope and
       missing/denied coverage. Shared object-store pages must not be added once
       per worker: report private memory separately from logical store usage.
       Do not claim external cluster memory coverage from a local driver sample.
-- [ ] Capture environment, dependency versions, source identity, and clean revision.
-- [ ] Measure small and substantial workloads; retain unfavorable results.
-- [ ] Explain timing, object-store serialization, locality, scheduling, and
+- [x] Capture environment, dependency versions, source identity, and clean revision.
+- [x] Measure small and substantial workloads; retain unfavorable results.
+- [x] Explain timing, object-store serialization, locality, scheduling, and
       limitations in both requested explanation documents.
-- [ ] Run full pytest, Ruff, mypy, pip check, build, fresh wheel and archive checks.
-- [ ] Independently review implementation; fix findings with regression tests.
-- [ ] Commit focused milestones and produce the required Phase 3 report.
+- [x] Run full pytest, Ruff, mypy, pip check, build, fresh wheel and archive checks.
+- [x] Independently review implementation; fix findings with regression tests.
+- [x] Commit focused milestones and produce the required Phase 3 report.
 
 ## Checkpoint
 
@@ -107,3 +107,12 @@ No multiple-machine scaling claim without a real multiple-machine run. Local
 multi-node validation is a functional test sharing one physical machine.
 No durable scheduler, retry policy, journal, recovery, Parquet, Docker environment,
 or optimization in this phase. Completion is not approval for Phase 4.
+
+## Observed validation limits
+
+The primary comparisons verified 56 successful trials, but established no complete
+private-memory samples. macOS denied child USS reads; actors also lacked the
+independent group/session proofs required for observer adoption. Raw coverage
+gaps and null peaks are retained. Functional actor/cluster cleanup is verified
+separately. Complete target-platform memory coverage remains future validation.
+See [results](benchmarks/phase-3/results.md) and the [phase report](phase-3-report.md).

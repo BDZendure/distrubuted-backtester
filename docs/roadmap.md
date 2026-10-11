@@ -8,7 +8,9 @@ Explicit user approval is required before starting the following phase.
 **Current status:** Phases 0 and 1 completed. Phase 1 was explicitly approved and
 its [report](phase-1-report.md) records validation. Phase 2 was explicitly approved and is complete.
 The [Phase 2 report](phase-2-report.md) records its verification and measurements.
-Phase 3 was explicitly approved and is being validated. Phase 4 requires new
+Phase 3 was explicitly approved and is verified locally; its
+[report](phase-3-report.md) and [comparisons](benchmarks/phase-3/results.md) record
+the evidence and unavailable memory coverage. Phase 4 requires new
 explicit approval.
 
 ## Phase 0: Architecture and repository setup

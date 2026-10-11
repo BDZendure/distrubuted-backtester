@@ -659,6 +659,25 @@ denied. On this Mac, self USS is available while the observer's owned child USS
 reads are denied. Live object-store occupancy is not observed. Neither the
 logical serialized dataset size nor reserved store capacity is physical usage.
 
+Publication certifies actor identities only with independent original-driver
+group or exact owned-session proof, plus creation-time/liveness revalidation.
+New process-group admissions require a surviving original group member. A reused
+PID/group cannot authorize cleanup. On this host, actual actors lacked these
+group/session proofs, so they were not adopted by the observer. Primary samples
+report missing actors and zero complete private-memory observations. Backend
+actor-handle cleanup is separately validated; memory coverage is not established.
+
+The parent captures the parsed CSV snapshot and complete canonical jobs before
+the first trial. Every trial must match that manifest, implementation, expected
+experiment ID and job set before establishing semantic equality or deleting details.
+This prevents a changed first trial from silently becoming the input reference.
+
+The [Phase 3 measurements](benchmarks/phase-3/results.md) use a clean source
+revision, three timed repetitions and one excluded warmup per configuration.
+All 56 trials succeeded. Cold Ray was slower on both workloads; two processes
+gave a 1.466x speedup for the 64-job, 4,096-bar workload. No warm-cluster or
+multiple-machine speedup is inferred.
+
 Ray measurements must preserve the declared end-to-end timing boundary and
 identical successful job sets/output detail. Fresh-process and reused-pool
 measurements need distinct declared boundaries, with raw samples, failures, and

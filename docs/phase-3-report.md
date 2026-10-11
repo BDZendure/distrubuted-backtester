@@ -1,6 +1,6 @@
 # Phase 3: Distributed execution
 
-**Status:** Final verification and primary measurements in progress.
+**Status:** Complete, verified locally; Phase 4 awaits explicit approval.
 **Release:** `0.4.0`. **Branch:** `feat/phase-3-distributed-execution`.
 
 ## Implemented
@@ -61,14 +61,15 @@ The final full suite passes **695 tests**, with no failures or skips.
 | --- | --- |
 | `.venv/bin/python -m pytest --tb=short` | 695 passed in 67.43 s |
 | `.venv/bin/python -m ruff check .` | All checks passed |
-| `.venv/bin/python -m ruff format --check .` | 75 files already formatted |
+| `.venv/bin/python -m ruff format --check .` | 76 files already formatted after adding measured documentation |
 | `.venv/bin/python -m mypy` | No issues in 51 source/test files |
 | `.venv/bin/python -m pip check` | No broken requirements |
 | `.venv/bin/python -m build` | Isolated wheel and source distribution built successfully |
+| `.venv/bin/python /tmp/phase3-archive-check.py` | One-off local audit: 26 wheel files and 93 source/archive files exactly match the checkout; extras metadata correct |
 | `git diff --check` | No whitespace errors |
 
-Primary measurements and final archive checks follow below once their
-verification is complete. Intermediate failures were investigated rather
+Primary measurements and packaging checks are described below. Intermediate
+failures were investigated rather
 than weakening assertions. The baseline recursive process
 memory test passes outside the sandbox, where macOS process enumeration is allowed.
 Ray socket/process tests also require that execution context on this machine.
@@ -110,6 +111,20 @@ Experiment ID: `759ba8ba1e995b91fea3e3982c5be70f6be32b9e72ade924d371fe7c28c4803b
 The installed source identity agrees with the checkout:
 `02d6288f4a007b3d4c7c143b5cab53a91b0ca08711ede192b5ab20f305165fe8`.
 
+After rebuilding with the measured reports, both wheel environments were
+reinstalled with `--no-index --no-deps --force-reinstall`. Ran the one-off audit
+`/Users/blakezhang/Documents/Dev/distrubuted-backtester/.venv-wheel-phase3-core/bin/python -I /tmp/phase3-wheel-final-check.py`
+from `/private/tmp`: the reference example and all three sweeps passed again,
+with the same verified digest and source identity above. These two `/tmp` scripts
+are local audits, not repository tools. The archive audit opens the wheel/source
+archive and compares every package, README/config/license, documentation, raw
+report, test, CSV, and lockfile byte with the corresponding checkout file.
+It also verifies all dependencies are conditional on extras and Ray is pinned.
+Raw reports and captured manifests match local observations byte for byte.
+The final Markdown audit checked 25 files and 120 local links, with none missing.
+CI YAML parsed successfully, and both published numerical summaries recomputed
+exactly from their raw runs. Remote CI and complete memory coverage are not claimed.
+
 The final real harness smoke command was:
 
 ```bash
@@ -126,8 +141,30 @@ were null with scoped denial evidence. This smoke is excluded from primary table
 
 ## Performance
 
-Primary small and substantial comparisons are pending. Preliminary smoke timings
-are functional evidence and are excluded from the final performance tables.
+The [measured results](benchmarks/phase-3/results.md) retain raw reports and
+captured manifests from clean revision
+`7ab3ff9d5261b30b3dcca57fedde84d040cc11c3` on the declared Mac. All **42 timed
+trials and 14 warmups**, totaling **2,688 simulations**, succeeded and verified.
+Workers were 2, 4 and 8; each configuration had three repetitions and one warmup.
+
+| Workload | Sequential median | Process-2 median | Ray-2 median |
+| --- | ---: | ---: | ---: |
+| 32 jobs x 64 bars | 0.162 s | 0.234 s | 4.148 s |
+| 64 jobs x 4,096 bars | 2.013 s | 1.374 s | 5.371 s |
+
+Two processes achieve a measured **1.466x speedup** on the substantial workload.
+Cold Ray is slower on both workloads. Reports include 4/8-worker observations,
+ranges, jobs/s, parallel efficiency, first-outcome latency, and startup/export/
+shutdown components. Startup and shutdown plausibly explain much of Ray's cold
+cost; this inference is not a CPU profile. Warm-cluster and multiple-machine
+performance remain unmeasured. Historical Phase 2 evidence is unchanged.
+
+All private-memory peaks are unavailable: child USS reads were denied and actor
+PIDs lacked independent group/session ownership proof for observer adoption.
+There were zero complete memory samples. Raw per-process RSS is not summed.
+Store capacity and payload length are logical quantities, not physical usage.
+The conservative observer leaves missing actor coverage explicit; backend actor
+execution/cleanup is validated separately. See the results for cleanup and scope.
 
 ## Known Limitations
 
@@ -138,7 +175,8 @@ are functional evidence and are excluded from the final performance tables.
 - Every actor has a Python dataset copy and returns full detailed outcomes.
 - No adaptive load balancing; CPU reservations are logical scheduling resources.
 - Memory sampling can miss short-lived processes and peaks. This Mac denies
-  child USS reads, so aggregate private-memory peaks are unavailable.
+  child USS reads. Observer actor ownership proof also failed on this host, so
+  complete actor coverage and private-memory peaks are unavailable.
 - Object-store capacity and serialized payload size are logical measurements;
   live occupancy, physical shared memory, and remote memory are not measured.
 - Local multi-node success is platform-specific; Ray describes macOS multi-node
@@ -182,6 +220,45 @@ fixed and run one comparison at a time. Timing varies with hardware/background
 activity. Detailed benchmark artifacts are verified before explicit deletion;
 omit the discard flag to retain them for later independent verification.
 
+### Reproduce the installed-wheel demonstration
+
+Build first, then use a new environment and temporary directory. From the repo:
+
+```bash
+python -m build
+python -m venv .venv-wheel-review
+.venv-wheel-review/bin/python -m pip install --no-deps \
+  dist/distributed_backtester-0.4.0-py3-none-any.whl
+phase3_repo="$PWD"
+phase3_demo="$(mktemp -d)"
+cd "$phase3_demo"
+
+"$phase3_repo/.venv-wheel-review/bin/distributed-backtester" backtest \
+  --data "$phase3_repo/examples/sma.csv" --symbol SYNTH --price-basis raw \
+  --fast 2 --slow 3 --initial-cash 1000 --fee-bps 10 --output example.json
+"$phase3_repo/.venv-wheel-review/bin/distributed-backtester" sweep \
+  --data "$phase3_repo/examples/sma.csv" --symbol SYNTH --price-basis raw \
+  --fast 1 2 --slow 3 4 --fee-bps 10 --backend sequential --workers 1 \
+  --output-dir sequential
+"$phase3_repo/.venv-wheel-review/bin/distributed-backtester" sweep \
+  --data "$phase3_repo/examples/sma.csv" --symbol SYNTH --price-basis raw \
+  --fast 1 2 --slow 3 4 --fee-bps 10 --backend process --workers 2 \
+  --output-dir process
+
+"$phase3_repo/.venv-wheel-review/bin/python" -m pip install \
+  "$phase3_repo/dist/distributed_backtester-0.4.0-py3-none-any.whl[distributed]"
+"$phase3_repo/.venv-wheel-review/bin/distributed-backtester" sweep \
+  --data "$phase3_repo/examples/sma.csv" --symbol SYNTH --price-basis raw \
+  --fast 1 2 --slow 3 4 --fee-bps 10 --backend ray --workers 2 --output-dir ray
+"$phase3_repo/.venv-wheel-review/bin/python" -I - <<'PY'
+from pathlib import Path
+from distributed_backtester.benchmark import semantic_digest
+digests = [semantic_digest(Path(name)) for name in ("sequential", "process", "ray")]
+assert len(set(digests)) == 1
+print(digests[0])
+PY
+```
+
 ## Engineering Lessons
 
 1. **Determinism crosses process boundaries.** Stable input/config/source identity
@@ -208,4 +285,5 @@ acknowledgments, repeated delivery, partial writes, and scheduler restart.
 
 ## Approval Required
 
-Stop here. Proceed to Phase 4 only after the user's explicit approval.
+Would you like to proceed to Phase 4? No Phase 4 implementation is authorized
+until the user explicitly approves it.

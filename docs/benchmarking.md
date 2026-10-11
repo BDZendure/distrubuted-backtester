@@ -142,8 +142,10 @@ excluded. Component times in execution diagnostics overlap coordinator timings;
 do not add overlapping intervals or equate them with worker CPU service time.
 No prestarted cluster throughput or CPU profile is inferred from cold runs.
 
-Every successful trial verifies expected source identity, complete all-success
-index, every detailed artifact digest, and semantic equality across trials.
+The parent parses and hashes the CSV snapshot and captures complete canonical
+jobs before starting any child. Every successful trial must match that declared
+manifest and experiment/job identities, then verify expected source identity,
+the complete all-success index, every detail digest, and cross-trial equality.
 Failure observations are persisted before abort. The optional
 `--discard-trial-results` flag unlinks only newly created indexed detailed result
 files after verification. Metadata, logs, digests, removed paths/bytes, and all
@@ -165,7 +167,11 @@ are not measured and are never added to private memory. Local observations cover
 one physical machine only. Remote cluster memory needs per-node agents and
 aligned observations; this runner deliberately has no external cluster option.
 A denied macOS process read is an environment limitation, not evidence of zero
-memory use. Reproduce on a permitted Linux host to establish additional coverage.
+memory use. In the recorded Mac runs, actors also lacked independent group/session
+proof and were excluded by the observer. Complete actor/cluster coverage was not
+established. A target platform needs both supported memory reads and trustworthy
+actor ownership evidence before publishing private-memory peaks. See the
+[actual Phase 3 observations](benchmarks/phase-3/results.md).
 
 Primary runs should use a clean committed source revision and record hardware,
 Python, all installed dependencies, thread settings, sample interval, seed, data
