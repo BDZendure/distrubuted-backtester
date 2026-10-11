@@ -16,14 +16,17 @@ def calculate_metrics(
     if not equity:
         raise ValueError("equity path cannot be empty")
     peak = initial_cash
-    maximum_drawdown = Fraction(0)
+    drawdown_numerator, drawdown_denominator = 0, 1
     for point in equity:
         require_integer(point.equity, "equity")
         peak = max(peak, point.equity)
-        maximum_drawdown = max(maximum_drawdown, Fraction(peak - point.equity, peak))
+        loss = peak - point.equity
+        # Positive peaks permit exact comparison without reducing each fraction.
+        if loss * drawdown_denominator > drawdown_numerator * peak:
+            drawdown_numerator, drawdown_denominator = loss, peak
     return Metrics(
         total_return=Fraction(equity[-1].equity - initial_cash, initial_cash),
-        maximum_drawdown=maximum_drawdown,
+        maximum_drawdown=Fraction(drawdown_numerator, drawdown_denominator),
         final_equity=equity[-1].equity,
         fill_count=len(fills),
         total_fees=sum(fill.fee for fill in fills),
