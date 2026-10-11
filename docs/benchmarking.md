@@ -178,3 +178,34 @@ Python, all installed dependencies, thread settings, sample interval, seed, data
 hash, workload generator, repetitions, and completion digests. Keep historical
 Phase 2 measurements unchanged. New comparisons are the Phase 3 baseline, even
 when a workload happens to match Phase 2.
+
+
+## Phase 5 storage comparison
+
+Run the separate `distributed_backtester.storage_benchmark` module with frozen
+package source. It compares CSV and strict integer Parquet layouts over identical
+synthetic bars, using sequential full experiments and six operations per layout.
+Rotate layout order each repetition and retain raw observations, source/workload
+identities, exact results digests, file sizes, and software environment.
+
+Read timing includes snapshot reading, hashing, parsing, and loader validation.
+Fresh-process import/setup and parent wall time through child exit are separate
+from the child API read. Warm reads decode again; primed content-verified cache
+hits still read and hash. Complete experiment time includes data loading, job
+construction, simulation, detailed export, and finalization. The harness verifies
+complete economic results after timing, excluding only source lineage for the
+cross-format comparison.
+
+Protocol-5 serialization and deserialization have separate observations.
+Same-host spawned transfer reports startup, Pipe delivery, and decoding through
+an acknowledgment before independent verification; end-to-end includes verified
+child exit. It does not measure network transfer. Own-process lifetime high-water
+RSS uses `resource.getrusage(RUSAGE_SELF)`, normalized to bytes with explicit
+availability and scope. Parent and child values remain separate. It is not the
+Phase 3 memory observer and cannot establish dataset live size or cluster memory.
+
+OS cache state is uncontrolled. A fresh interpreter is not a cold-disk read.
+Report medians and ranges for small and substantial workloads, and inspect whether
+row-group settings actually produce different files. File compression does not
+imply smaller Python worker objects or faster complete simulations. See
+[storage commands](storage.md) and [actual Phase 5 results](benchmarks/phase-5/results.md).

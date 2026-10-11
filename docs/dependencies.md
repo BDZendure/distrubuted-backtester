@@ -1,6 +1,6 @@
 # Dependency plan
 
-## Current Phase 4 environment
+## Current Phase 5 environment
 
 Runtime dependencies are empty. Development/build tools are declared and pinned
 in `pyproject.toml`; installation uses a repository-local virtual environment.
@@ -14,6 +14,8 @@ in `pyproject.toml`; installation uses a repository-local virtual environment.
 | build | 1.6.1 | Wheel and source distribution validation |
 | psutil (optional `benchmark` extra) | 7.2.2 | Sample coordinator/descendant RSS; hardware observations |
 | Ray (optional `distributed` extra) | 2.59.0 | Remote actors, resource scheduling, and object-store data placement |
+| PyArrow (optional `storage` extra) | 25.0.1 | Exact columnar market-data storage and validation |
+| DuckDB (optional `storage` extra) | 1.5.6 | Transactional import and analytical queries |
 
 The core and process backend still require no third-party runtime dependency.
 Phase 2 adds optional psutil; sequential/process sweeps work without it. Version
@@ -57,7 +59,7 @@ outcomes before handing them to the collector.
 | 2 (implemented) | Standard-library `concurrent.futures`, `multiprocessing`; optional psutil 7.2.2 | Local CPU execution and whole-process memory measurement |
 | 3 (implemented) | Optional Ray 2.59.0 | Remote actor scheduling and data placement |
 | 4 (implemented) | Standard-library SQLite and POSIX advisory locking | Atomic lifecycle/result commits for a single coordinator |
-| 5 | PyArrow and DuckDB; pandas for concrete tabular/reporting use if needed | Columnar storage and analytical queries |
+| 5 (implemented) | Optional PyArrow 25.0.1 and DuckDB 1.5.6 | Columnar storage and analytical queries; no dataframe dependency needed |
 | 6 | Profilers as justified; NumPy or compiled tools only for measured bottlenecks | Optimize based on evidence |
 | 7 | Docker tooling and operational additions justified by the implementation | Reproducible developer/runtime environment |
 | 8 | No assumed new runtime dependencies | Documentation and verified portfolio evidence |
@@ -86,3 +88,13 @@ to pinned tool or action revisions should be reviewed and checked together.
 Phase 4 introduces no third-party dependency. SQLite supplies local journal
 transactions; durable scheduling uses POSIX flock and rejects unsupported writer
 platforms explicitly. Classic simulation remains independent of those facilities.
+
+Phase 5 installs both storage libraries only with `.[storage]`. Lazy imports
+preserve dependency-free CSV loading, sweeps, package import, and CLI help.
+The pinned [PyArrow wheel](https://pypi.org/project/pyarrow/25.0.1/) and
+[DuckDB wheel](https://pypi.org/project/duckdb/1.5.6/) were installed on the local
+CPython 3.14.6/macOS arm64 environment. The exact observed environment is in
+[storage-benchmark.lock](../requirements/storage-benchmark.lock), with the same
+version-snapshot limitations as the earlier locks. Dynamic native APIs are
+restricted to adapter modules; strict domain types and decoded values remain
+validated outside them. No pandas or NumPy dependency was needed in this phase.

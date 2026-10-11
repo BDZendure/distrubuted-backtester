@@ -8,8 +8,9 @@ exact execution/accounting, a deterministic simulation, metrics, JSON export,
 and a CLI. Phase 2 adds stable jobs, parameter sweeps, sequential and process
 backends, initialized workers, incremental export, and a benchmark harness.
 Phase 3 adds the optional Ray actor pool and an existing-cluster connection.
-Phase 4 adds a local SQLite scheduler, retry policy, and Ray recovery. Analytical
-storage remains future work. See the
+Phase 4 adds a local SQLite scheduler, retry policy, and Ray recovery. Phase 5
+adds exact versioned Parquet inputs, explicit verified caching, and DuckDB
+analytical snapshots. See the
 [Phase 2 report](phase-2-report.md) and [Ray instructions](ray-clusters.md).
 
 The engineering goal is reproducible independent simulations, reliable execution,
@@ -33,7 +34,7 @@ writing to a database. Adapters perform those operations around the simulation.
 ```mermaid
 flowchart LR
     CLI[CLI] --> EM[Experiment manager]
-    CSV[CSV / future Parquet] --> MD[Market data validation and loading]
+    CSV[CSV / Parquet] --> MD[Market data validation and loading]
     EM --> EB[Execution backend]
     EB --> WR[Worker runtime]
     MD --> WR
@@ -86,6 +87,9 @@ src/distributed_backtester/
     money.py
     models.py
     data.py
+    market_data.py
+    dataset_identity.py
+    parquet_data.py
     strategy.py
     execution.py
     simulation.py
@@ -97,6 +101,8 @@ src/distributed_backtester/
     worker.py
     experiments.py
     experiment_artifacts.py
+    experiment_snapshot.py
+    analytics.py
     scheduler/
         models.py
         journal.py
@@ -108,6 +114,8 @@ src/distributed_backtester/
     measurement.py
     ray_benchmark.py
     ray_measurement.py
+    storage_benchmark.py
+    storage_measurement.py
     backends/
         base.py
         sequential.py
@@ -137,6 +145,10 @@ docs/
     phase-2-plan.md
     phase-2-report.md
     phase-3-plan.md
+    phase-4-report.md
+    phase-5-plan.md
+    phase-5-report.md
+    storage.md
     ray-clusters.md
     benchmarks/phase-2/
         results.md
@@ -149,6 +161,8 @@ docs/
         0003-reproducibility-and-results.md
         0004-bounded-local-execution.md
         0005-ray-actor-execution.md
+        0006-durable-scheduling.md
+        0007-versioned-storage-and-analytics.md
 ```
 
 Execution has its own small module because fee rounding, affordability, timing,
@@ -392,9 +406,9 @@ worker/node/timing diagnostics do not enter semantic identity.
 Phase 4 defines scheduler states `pending`, `running`, `succeeded`, and `failed`,
 with retryable attempts returning to `pending`. A scheduler is the single durable
 writer; workers submit outcomes with job and attempt identifiers. A persistent
-SQLite journal is a candidate for atomic result/lifecycle transactions using the
-standard library. Review this storage decision in Phase 4 before implementation.
-DuckDB in Phase 5 is intended for analytics, not concurrent worker writes.
+SQLite journal implements atomic result/lifecycle transactions using the
+standard library. DuckDB imports verified terminal snapshots for analytics;
+workers never write either database.
 
 The intended guarantee is at-least-once execution with at most one durable
 successful result per stable job ID, within one authoritative coordinator/store.
@@ -453,3 +467,25 @@ The retry budget includes the first attempt and remains fixed on resume. Source
 and dataset identity must match before journal state is changed. Resource settings
 may change. See [ADR 0006](decisions/0006-durable-scheduling.md),
 [reliability](reliability.md), and [Phase 4 report](phase-4-report.md).
+
+## Phase 5 implementation: data and analytical projections
+
+`market_data.py` selects CSV or Parquet and optionally reuses immutable data
+through `DatasetCache`. `dataset_identity.py` defines canonical normalized bar
+hashes and the logical version descriptor. `parquet_data.py` performs strict
+Arrow schema/metadata validation and bounded row-group writes. The engine,
+strategies, and worker contract continue to consume `MarketDataset`.
+
+`experiment_snapshot.py` verifies complete experiment outcomes from classic
+exports or a consistent read-only journal transaction. It streams detailed
+artifacts rather than accumulating every equity curve. `analytics.py` imports
+that snapshot atomically into DuckDB. Experiments, job definitions, outcome
+content, snapshot membership, and source observations have distinct identities.
+The same experiment can have several terminal snapshots after operational
+failures; identical imports deduplicate. The journal retains authority.
+
+`storage_measurement.py` and `storage_benchmark.py` record format loading,
+verified cache reuse, repeated sequential experiments, payload size, serialization,
+same-host process transfer, and process high-water memory. Fresh processes do not
+evict the filesystem cache. See [storage](storage.md) and
+[ADR 0007](decisions/0007-versioned-storage-and-analytics.md).

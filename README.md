@@ -4,13 +4,14 @@ A portfolio engineering project for reproducible strategy simulations, local CPU
 parallelism, and Ray execution. The focus is correct event
 timing, exact accounting, explicit failure behavior, and measured performance.
 
-**Current stage: Phase 4 verified locally, fault tolerance and scheduling.** Run a
+**Current stage: Phase 5, versioned storage and results analysis, verified locally.** Run a
 deterministic daily SMA backtest, or a parameter sweep through sequential, spawn
 process, or Ray backends.
 Stable jobs, bounded submissions, explicit failures, incremental result export,
 and reproducible benchmark measurements extend the Phase 1 engine.
 Ray is optional. Durable Ray sweeps add journaled retries, deadlines, and resume.
-Phase 5 requires explicit approval.
+Optional Parquet inputs preserve exact prices. DuckDB imports verified experiment
+snapshots for analysis. Phase 6 requires explicit approval.
 
 ## Start with the explanations
 
@@ -24,6 +25,11 @@ Phase 5 requires explicit approval.
   all nine phases.
 - [Architecture decisions](docs/decisions/README.md), [testing strategy](docs/testing.md),
   [benchmark methodology](docs/benchmarking.md), and [dependency plan](docs/dependencies.md).
+- [Storage and results commands](docs/storage.md), including version identifiers,
+  the verified cache, and authoritative journal imports.
+- [Phase 5 completion report](docs/phase-5-report.md) and
+  [storage measurements](docs/benchmarks/phase-5/results.md), with raw repetitions
+  and full-result correctness checks.
 - [Phase 2 completion report](docs/phase-2-report.md) and
   [local scaling results](docs/benchmarks/phase-2/results.md).
 - [Ray cluster instructions](docs/ray-clusters.md) and
@@ -62,6 +68,20 @@ Mac was verified with Python 3.14.6 and its macOS arm64 wheel. All cluster nodes
 need compatible Python/Ray versions and identical installed project source.
 
 ## Run a backtest
+
+For optional columnar inputs and a queryable results database:
+
+```bash
+python -m pip install --editable ".[dev,benchmark,storage]"
+distributed-backtester convert-data --data examples/sma.csv --symbol SYNTH \
+  --price-basis raw --output artifacts/sma.parquet
+distributed-backtester backtest --data artifacts/sma.parquet --symbol SYNTH \
+  --price-basis raw --fee-bps 10 --output artifacts/parquet-example.json
+```
+
+See [storage instructions](docs/storage.md) for sweeps, imports, queries, version
+checks, and the reproducible storage benchmark. The optional libraries are pinned
+to PyArrow 25.0.1 and DuckDB 1.5.6. CSV works without either library.
 
 ```bash
 distributed-backtester backtest --data examples/sma.csv \
@@ -246,7 +266,7 @@ Check the built wheel in a fresh environment:
 ```bash
 python -m venv .venv-wheel-phase4
 .venv-wheel-phase4/bin/python -m pip install --no-index --no-deps --force-reinstall \
-  dist/distributed_backtester-0.5.0-py3-none-any.whl
+  dist/distributed_backtester-0.6.0-py3-none-any.whl
 wheel_python="$PWD/.venv-wheel-phase4/bin/python"
 wheel_cli="$PWD/.venv-wheel-phase4/bin/distributed-backtester"
 sample_data="$PWD/examples/sma.csv"
@@ -261,9 +281,8 @@ records what was actually executed locally and what remains unobserved remotely.
 
 ## Scope and limitations
 
-Later phases add durable retries and
-idempotent result commits, Parquet/DuckDB, profiling, and operational tooling.
-These later capabilities remain plans. Local measurements describe this host and
+Later phases add profiling, measured optimizations, and operational tooling.
+Local measurements describe this host and
 workloads; they do not establish cross-machine scaling or production readiness.
 
 The initial execution model has no market impact, volume-based liquidity limits,
@@ -271,10 +290,11 @@ intraday execution, dividends, splits, leverage, short selling, or fractional
 shares. Synthetic data establishes correctness. An incomplete real-data universe
 cannot establish freedom from survivorship bias or investment performance.
 
-The current engine has no exchange calendar, annualized/Sharpe conventions,
-durable scheduler, retries, or database. Local complete-file export requires filesystem
-hard links/atomic replacement; it does not provide distributed commits or crash
-recovery. Custom strategies are a Python testing/extension hook, with caller-owned
+The current engine has no exchange calendar or annualized/Sharpe conventions.
+Durable recovery requires a local POSIX journal and one coordinator; it does not
+provide replication or failover after disk loss. The analytical database does not
+replace that journal. Local complete-file export requires filesystem hard
+links/atomic replacement. Custom strategies are a Python testing/extension hook, with caller-owned
 state; their results cannot be exported without supported parameter provenance.
 The CLI runs the fully described SMA.
 

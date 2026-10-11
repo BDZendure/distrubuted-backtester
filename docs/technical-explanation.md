@@ -6,7 +6,7 @@ The Phase 1 engine implements a deterministic daily backtester for one asset,
 USD, whole shares, and long-only targets. Phase 2 adds immutable jobs, parameter
 sweeps, sequential and local process backends, incremental detailed export, a
 compact result index, and a benchmark runner. Phase 3 adds optional Ray actors.
-Release `0.5.0` retains strict CSV
+Release `0.6.0` retains strict CSV
 loading, the SMA strategy, next-open execution, exact accounting, return and
 drawdown metrics, and versioned JSON export. Runtime dependencies in
 `pyproject.toml` are empty. CSV parsing, integer arithmetic, `Fraction`, command
@@ -25,6 +25,8 @@ quote a provisional test count. See the
 Ray execution is implemented in Phase 3, with identical engine and job contracts.
 Phase 4 adds a local durable scheduler around Ray. Classic Phase 3 execution
 still has no recovery protocol or multiple-machine performance claim.
+Phase 5 adds optional exact Parquet, a verified explicit cache, and DuckDB import
+of complete result snapshots. See [storage commands](storage.md).
 
 ## Actual module boundaries
 
@@ -33,6 +35,7 @@ still has no recovery protocol or multiple-machine performance claim.
 | `models.py` | Frozen domain records for bars, metadata, dataset, configuration, portfolio, intents, fills/outcomes, equity, metrics, and results; bounded `CloseHistory` views |
 | `money.py` | Exact decimal-text parsing to integer micro-USD, integer half-even rounding, and fixed-place money/ratio formatting |
 | `data.py` | Read and hash one CSV byte snapshot, validate it, and return immutable data |
+| `market_data.py`, `dataset_identity.py`, `parquet_data.py` | Format-aware loading, explicit verified LRU, normalized data versions, exact Arrow storage |
 | `strategy.py` | `Strategy` protocol and stateful `MovingAverageCrossover` target decisions |
 | `execution.py` | Validate intents, calculate fees, find affordable quantity, and return an updated portfolio plus an order outcome |
 | `simulation.py` | Session chronology, pending intent and sequence validation, fill/equity collection, terminal cancellation, and result assembly |
@@ -43,9 +46,11 @@ still has no recovery protocol or multiple-machine performance claim.
 | `worker.py` | Execute one job against matching data/implementation and return a result or structured ordinary failure |
 | `backends/base.py`, `sequential.py`, `process.py` | Streaming outcome protocol, reference execution, and bounded spawn execution |
 | `experiments.py` | Load once, create jobs, export detailed outcomes, and finalize semantic index plus operational execution record |
+| `experiment_snapshot.py`, `analytics.py` | Verify complete classic/journal snapshots and import/query an owned DuckDB analytical copy |
 | `workloads.py` | Deterministic synthetic CSV and distinct SMA benchmark configurations |
 | `measurement.py` | Optional process-tree RSS sampling, fresh child-process timing, and host metadata |
 | `benchmark.py` | Fresh-process trials, artifact verification, rotating repetitions, raw observations, and summaries |
+| `storage_measurement.py`, `storage_benchmark.py` | Format loads, repeated experiments, cache reuse, serialization/transfer, high-water RSS, raw verified repetitions |
 | `cli.py`, `__main__.py` | Backtest/sweep options, input/output checks, invocation, export, and user-facing errors |
 
 The implemented boundaries are:
@@ -341,7 +346,7 @@ slow 3, initial cash 1000, and fee 0 bps. Positive windows require fast < slow;
 cash must be positive exact micro-USD; fees are integers from 0 to 10000.
 `--output` selects a JSON file, otherwise JSON goes to stdout.
 `--overwrite` permits replacing that file. `backtest --help` explains options;
-top-level `--version` reports the installed release, `0.5.0` for this version. The
+top-level `--version` reports the installed release, `0.6.0` for this version. The
 [beginner guide's option table](clear%20explanation.md#run-the-included-example)
 explains each argument.
 
@@ -402,8 +407,8 @@ support; this implementation does not claim universal filesystem behavior.
 
 ## Release identity and reproducibility limits
 
-For an installation of release `0.5.0`, the engine ID is
-`distributed-backtester/0.5.0:daily-long-only-v1`. The release component comes
+For an installation of release `0.6.0`, the engine ID is
+`distributed-backtester/0.6.0:daily-long-only-v1`. The release component comes
 from installed package metadata; the suffix identifies the declared simulation
 semantics. It is not a source-code hash. Editing code in an editable installation
 can leave the release and engine ID unchanged, so that ID alone does not identify
@@ -479,7 +484,7 @@ resumes. Completed futures retain results until their references are released.
 On closure/error, it attempts to cancel pending futures and shuts down the pool;
 already running jobs may finish during shutdown.
 
-`run_experiment` loads the CSV once, fingerprints the implementation, and expands
+`run_experiment` loads the dataset once, fingerprints the implementation, and expands
 the grid before `collect_experiment` creates a fresh directory. Collection checks
 outcome IDs for unknowns/duplicates and each successful result for matching config,
 dataset, engine, supported SMA identity, and exact supported result schema. Its files are:
@@ -512,7 +517,7 @@ source. Operational fields belong in `execution.json` and benchmark observations
 Same-source backend comparison covers complete canonical semantic results,
 including provenance, one artifact at a time.
 
-**Phase 5 cross-format checks are a separate planned contract:** converting CSV
+**Phase 5 cross-format checks are a separate contract:** converting CSV
 to Parquet changes source bytes, digest, and job identity. First establish equal
 validated bars, configuration, and policy; then compare economic fields: fills,
 order outcomes, equity, final portfolio, and metrics. Validate each artifact's
@@ -696,11 +701,11 @@ than once and miss brief peaks; declare those limitations. The
 The five-bar example and test duration do not establish throughput or speedup.
 The current owned-local harness does not implement remote sampling or clock alignment.
 
-## Planned analytical storage
+## Analytical storage
 
 Phase 4 scheduling and its limits are described below.
-**Phase 5, not implemented:** DuckDB provides analysis over committed outcomes;
-it does not supply the scheduler's commit protocol by itself.
+Phase 5 provides DuckDB analysis over verified complete outcomes. Its import
+transaction is separate from the scheduler's authoritative SQLite commit.
 
 See [architecture](architecture.md), [roadmap](roadmap.md), and
 [testing strategy](testing.md) for the future contracts and phase checkpoints.
@@ -746,3 +751,113 @@ explicit storage and throughput tradeoffs, with no new performance claim.
 
 See [reliability](reliability.md), [ADR 0006](decisions/0006-durable-scheduling.md),
 and the [Phase 4 report](phase-4-report.md) for commands and actual verification.
+
+## Phase 5: exact storage and analytical snapshots
+
+### Storage boundary
+
+`load_dataset` selects a parser before passing a frozen `MarketDataset` to the
+unchanged engine. CSV metadata serializes to its original five keys. Parquet
+adds `source_format`, `dataset_version`, `parent_source_sha256`, and `bars_sha256`.
+All three added hashes are mandatory together; unknown or partial metadata is
+rejected by domain records and strict job decoding.
+
+Parquet uses exactly six nonnullable columns: `date` as Arrow `date32`, OHLC as
+signed `int64` micro-USD, and volume as signed `int64`. No inferred float or
+timestamp conversion is accepted. The reader checks provenance, row count,
+global ordering, bar domain constraints, and the canonical normalized bar digest.
+It decodes the same bytes used for physical SHA-256, avoiding a separate
+hash/read race. Arrow's page checksums supplement domain and digest checks.
+
+The logical version hashes a canonical descriptor containing schema version,
+symbol, USD/raw policy, validation version, micro-USD unit, original CSV digest,
+normalized bar digest, and row count. Each normalized row hashes canonical JSON
+`[date, open, high, low, close, volume]` followed by LF. Compression and row-group
+layout are excluded from this descriptor. The physical source digest still
+participates in jobs and manifests, so recompression creates new jobs even when
+the logical version stays the same. Expected-version checking is optional at
+load time; durable resume also requires exact source and implementation identity.
+
+Conversion validates the int64 range before creating destination parents. It
+writes configurable bounded row groups to a sibling temporary file, closes and
+fsyncs it, then publishes with no-overwrite linking or explicit replacement.
+Cleanup failure is logged without obscuring the primary operation's outcome.
+This does not claim directory-fsync or arbitrary power-loss durability.
+
+### Explicit cache
+
+`DatasetCache(max_entries=1)` is an entry-bounded LRU, keyed by selected format,
+symbol, and SHA-256 of current bytes. Each request validates arguments and rereads
+and hashes the file. A hit reuses immutable decoded bars and avoids parsing and
+domain validation; it never trusts only path, size, or timestamp. Expected-version
+checking also applies to hits. There is no process-global cache, cross-worker
+shared heap, byte budget, or persistent cache service.
+
+### Verified snapshots and DuckDB
+
+`read_experiment_snapshot` validates the canonical experiment definition and all
+terminal outcomes. Classic mode verifies index membership and streamed detailed
+artifacts. Durable mode uses a read-only consistent SQLite transaction and the
+journal's existing invariants. A present journal takes priority over exports;
+corrupt authority cannot be replaced by a convenient JSON fallback. Import does
+not acquire the coordinator's writer lock, resume work, or change journal schema.
+
+Detailed validation reconciles declared fills with initial cash, whole-share
+target sizing, rounded fees, and every recorded cash/holdings transition. Fill
+dates must match the next supplied equity session. Orders have strict field
+domains and status/reason rules, with one matching order per fill and no orphan
+or duplicate links. Nullable malformed-intent diagnostics remain valid for
+explicit rejections. This checks internal consistency, without rerunning the
+strategy or independently verifying a vendor's open prices.
+An ordered walk reserves known intent closes, then assigns unknown immediate
+diagnostics to their earliest feasible unused closes between recorded events.
+Invalid-timing diagnostics need a possible emitting close different from their
+declared date. An exhaustive small-calendar reference checks this matcher.
+
+Snapshot identity hashes canonical `{experiment_id, outcomes}` where outcomes
+are sorted `{job_id, content_sha256}` pairs. Input definition identity and terminal
+result identity are distinct: the same experiment can produce different terminal
+failures in different runs. Identical snapshots deduplicate; divergent snapshots
+coexist without overwriting historical answers.
+
+DuckDB stores experiment manifests, job definitions, full canonical artifact
+bytes, compact records, snapshot membership, and separate canonical source
+observations. Membership is unique per snapshot/job. Imports are transactional,
+including verification of late artifacts, so errors cannot leave a partially
+accepted snapshot. The adapter checks an owned schema/version and refuses
+unrelated databases. Queries are read-only, bounded, parameterized, and sorted.
+The owned catalogue includes custom macros/functions; built-in catalogue readers
+are qualified to prevent a local macro from shadowing the checks. See the
+[DuckDB catalogue reference](https://duckdb.org/docs/current/sql/meta/duckdb_table_functions).
+
+Money and ratios retain their original exact strings. The `results_report` SQL
+view adds `TRY_CAST` projections to bounded decimals (`DECIMAL(38,6)` for money,
+`DECIMAL(38,12)` for ratios) and integer fill counts. Out-of-range projections are
+explicitly null; raw text remains available. The CLI returns original metrics,
+avoiding conversion through Python floating point. DuckDB is an analytical
+projection, separate from the coordinator's authoritative result commit.
+
+### Measurement and limits
+
+The storage harness measures fresh-process load through child exit, repeated
+in-process load, verified cache reuse, repeated full sequential experiments,
+protocol-5 pickle serialization, and same-host spawned transfer. It records raw
+repetitions, workload identities, bar/economic digests, file/payload sizes,
+environment, and own-process high-water RSS. Serialization uses the existing
+Python object representation; Parquet does not make workers share memory.
+
+Fresh-process measurements include native imports and setup. Filesystem cache
+state is uncontrolled. High-water RSS is not retained dataset size or aggregate
+cluster memory. Spawned transfer includes process startup and is not a network
+measurement. Default row groups contain 65,536 rows; files contain one asset's
+history, without a multi-asset catalogue or fine-grained date partitions. Read
+[storage instructions](storage.md), [ADR 0007](decisions/0007-versioned-storage-and-analytics.md),
+and the [Phase 5 report](phase-5-report.md) for evidence and reproduction.
+
+
+The [recorded Phase 5 storage measurements](benchmarks/phase-5/results.md) contain
+108 verified observations. On the 65,536-bar workload, default Parquet reduced
+file bytes from 4,054,324 to 2,056,839; complete four-job medians were 8.633964 s
+(CSV) and 8.653589 s (Parquet). Warm-read and cache measurements are separate
+operations, not substitutes for end-to-end experiment time. No CPU or allocation
+bottleneck is claimed without the Phase 6 profiling work.

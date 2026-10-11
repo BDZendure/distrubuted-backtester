@@ -8,7 +8,7 @@ The Phase 1 engine implements that replay for one asset, one daily price table,
 and one set of settings at a time. Phase 2 adds parameter sweeps that run many
 independent simulations sequentially or with local worker processes. Phase 3 adds
 Ray workers and connections to an existing cluster. The current package release
-is `0.5.0`.
+is `0.6.0`.
 
 You can run the command below and get a JSON result containing the settings,
 data fingerprint, trades, order outcomes, daily portfolio values, and summary
@@ -18,7 +18,8 @@ metrics. It uses whole shares and USD, and can hold shares or cash. This is
 All three backends can run on one machine. Ray can attach to a cluster, provided
 every machine has matching installed code. Actual performance across physical
 machines has not been established. Phase 4 adds optional recovery using a local SQLite journal. The core uses Python's standard library; Ray and memory sampling
-are optional dependencies.
+are optional dependencies. Phase 5 adds optional Parquet data files and a DuckDB
+database for searching complete answers. The original CSV example still works.
 
 ## Python and the tools in simple terms
 
@@ -461,12 +462,11 @@ for the evidence and limitations.
 
 | Phase | Planned capability |
 | --- | --- |
-| 5 | Parquet data and DuckDB analysis, comparing economic results while checking each format's provenance separately |
 | 6 | Profiling and optimizations supported by measured results |
 | 7 | Operational tooling and a reproducible developer environment |
 | 8 | Final documentation and portfolio evidence based on implemented facts |
 
-Those later features are not part of the implemented Phase 4 scope. Phase 4
+Those later features are not part of the implemented Phase 5 scope. Phase 4
 recovery does not promise coordinator high availability or recovery after disk loss. Several workers may be slower for small jobs, so scaling claims need
 actual measurements.
 
@@ -507,15 +507,91 @@ This is why we promise one saved terminal result per job, not one calculation.
 
 JSON result files are copies for you to inspect. The journal is the master record.
 Resume can recreate those copies even when every job is already finished, without
-starting Ray again. Keep your input CSV outside the experiment output directory.
+starting Ray again. Keep your input dataset outside the experiment output directory.
 Do not edit or delete SQLite working files while an experiment is running.
 
 Use Terminal or VS Code's terminal. Install the optional Ray extra, then copy the
 [durable command examples](reliability.md#commands). `status` shows job counts and
-attempt history. `resume` needs the original CSV bytes and unchanged project source.
+attempt history. `resume` needs the original input bytes and unchanged project source.
 The retry limit stays the same. You can change how many workers resume uses.
 
 This handles process failures with a journal on the local machine. Losing the disk
 also loses that journal. It does not automatically run a second coordinator server.
 The [technical explanation](technical-explanation.md#phase-4-durable-scheduling)
 explains the transactions and stale-result checks.
+
+## Phase 5: smaller data files and searchable answers
+
+You still use **Terminal or VS Code's terminal**. The included
+[`examples/sma.csv`](../examples/sma.csv) is ready to run. There is no dashboard
+to install.
+
+| Word | Simple meaning |
+| --- | --- |
+| CSV | A readable table stored as text |
+| Parquet | A compressed table stored by column |
+| PyArrow | The library that reads and writes our Parquet files |
+| DuckDB | A database file that lets us search saved experiment answers |
+| Dataset version | A fingerprint of the data, its original CSV, and its declared meaning |
+| Cache | A bounded collection of already checked data held in memory |
+| Snapshot | One complete set of answers from an experiment |
+
+Think of the flow as three steps:
+
+```mermaid
+flowchart LR
+  CSV[Included CSV] --> Convert[Convert to Parquet]
+  Convert --> Run[Run the same backtests]
+  Run --> Import[Import verified answers]
+  Import --> Query[Query DuckDB]
+```
+
+The simulation does not change when you convert the file. Prices are saved as
+exact whole numbers of millionths of a dollar. The example should still finish
+with **$749.257**, two trades, and **$1.743** in fees.
+
+```bash
+python -m pip install --editable ".[dev,benchmark,storage]"
+distributed-backtester convert-data --data examples/sma.csv --symbol SYNTH \
+  --price-basis raw --output artifacts/sma.parquet
+distributed-backtester sweep --data artifacts/sma.parquet --symbol SYNTH \
+  --price-basis raw --fast 1 2 --slow 3 4 --fee-bps 10 \
+  --backend sequential --output-dir artifacts/parquet-sweep
+distributed-backtester results-import --experiment-dir artifacts/parquet-sweep \
+  --database artifacts/results.duckdb
+distributed-backtester results-query --database artifacts/results.duckdb
+```
+
+Use a new sweep directory when you repeat the example. Importing the same saved
+answers twice does not create duplicate result rows. If two runs with the same
+settings finish with different failures, the database keeps separate snapshots.
+It will not pretend those sets of answers were identical.
+
+The version protects against accidentally using different input data at the same
+path. The converter prints a `dataset_version`. You can pass it with
+`--dataset-version HASH` when running a backtest or sweep. A file's physical
+fingerprint may change when compression changes even if its data version stays
+the same. Neither fingerprint proves the vendor's prices are truthful.
+
+The cache checks the file's current contents on every request. Reuse saves
+decoding work, but still reads the file. Keeping many large histories in memory
+would use more RAM, so the default cache holds one dataset.
+Python code and the benchmark can opt into this cache. Separate CLI commands
+start separate processes and do not reuse the previous command's memory.
+
+For recoverable experiments, the SQLite journal remains the master record.
+DuckDB is a searchable copy. You can import complete answers from the journal
+even if its exported JSON copies need repair. A broken journal is reported as an
+error. These databases serve different jobs.
+
+Parquet is not automatically faster for every file. A five-row CSV is tiny;
+starting a library can cost more than reading it. Our storage benchmark includes
+small and larger workloads and records what happened. See
+[storage instructions](storage.md) and [measured comparisons](benchmarks/phase-5/results.md).
+
+
+Our measured larger example made that tradeoff concrete: the CSV used about
+4.05 MB and default Parquet used about 2.06 MB, but complete four-job runs both
+took about 8.6 seconds. Reusing an already checked dataset through the explicit
+cache was much quicker than decoding it again. This does not mean every CLI
+command becomes quicker, because a new command starts a new process.

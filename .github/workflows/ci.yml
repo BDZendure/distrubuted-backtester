@@ -41,6 +41,8 @@ jobs:
       - name: Type check
         run: python -m mypy
       - name: Test
+        env:
+          PHASE5_STORAGE_CHILD_TESTS: "1"
         run: python -m pytest
       - name: Check dependencies
         run: python -m pip check

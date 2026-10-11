@@ -137,3 +137,34 @@ The final complete suite passed all 897 tests in 105.18 seconds, including stron
 timeout assertions, those same fault scenarios, and the existing
 cluster/resource/ownership tests.
 See [the verification report](phase-4-report.md) for observed commands and outcomes.
+
+## Phase 5 verification boundaries
+
+Parquet tests round-trip exact values and hand-calculated simulation economics.
+They reject float prices, timestamp dates, nullable/extra/missing fields, invalid
+prices/volumes, global ordering violations across row groups, and inconsistent
+provenance. Corruption fixtures distinguish self-consistent descriptor changes
+from actual content changes, so version checks cannot mask bar-hash checks.
+CSV serialization retains its exact five-field metadata contract.
+
+Cache tests verify format/symbol separation, least recent use, immutable reuse,
+disabled-cache decoding, and same-size/same-timestamp replacement. Analytics
+tests exercise real DuckDB transactions and real SQLite snapshots, complete
+classic verification, damaged exports, distinct terminal snapshots, idempotent
+imports, exact raw metrics, bounded numeric projections, and rollback after a
+late invalid artifact. Native dependency failures must be clear CLI errors.
+
+`tests/test_storage_ray.py` compares complete same-Parquet semantics across
+sequential, spawn processes, classic Ray, and durable Ray, including completed
+resume without extra attempts. Run it after freezing package source. Storage
+measurement unit tests cover reported boundaries; actual subprocess benchmark
+runs establish the measured evidence separately. See [Phase 5 report](phase-5-report.md).
+
+
+The final accepted Phase 5 source passed **1,213 tests in 347.97 seconds** on
+CPython 3.14.6/macOS, with `PHASE5_STORAGE_CHILD_TESTS=1` enabling the real storage
+child case. Ruff, formatting, strict mypy, and dependency checks passed.
+CI enables that case in the main checks job, while a separate job installs Ray
+and exercises its integration/fault tests. Remote CI outcomes are not claimed
+from local execution. See the [completion report](phase-5-report.md) for exact
+commands, isolated wheel checks, and source identity.

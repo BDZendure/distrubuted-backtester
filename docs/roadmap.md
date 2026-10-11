@@ -13,7 +13,9 @@ Phase 3 was explicitly approved and is verified locally; its
 the evidence and unavailable memory coverage. Phase 4 was explicitly approved
 and is verified locally, including actual Ray fault recovery and coordinator
 restart. Its [report](phase-4-report.md) records 897 passing tests and CLI export
-parity/repair evidence. Phase 5 requires new explicit approval.
+parity/repair evidence. Phase 5 was explicitly approved and is verified locally.
+Its [report](phase-5-report.md), [storage measurements](benchmarks/phase-5/results.md),
+and [completed plan](phase-5-plan.md) record the evidence. Phase 6 remains unapproved.
 
 ## Phase 0: Architecture and repository setup
 
@@ -148,9 +150,11 @@ and query shape; avoid many tiny files by default.
 economic results (fills, order outcomes, equity, final state, and metrics). Their
 artifact byte digests/job IDs may differ; validate provenance and conversion lineage
 separately. Same-source backend tests still compare complete semantic results.
-Queries preserve one authoritative committed result per job.
-Experiments resolve the intended dataset version. Storage efficiency, query
-performance, and complexity tradeoffs are documented with measurements.
+Each snapshot preserves one verified outcome per stable job ID; queries can
+return multiple snapshots.
+Experiments resolve the intended dataset version. Storage efficiency and
+complexity tradeoffs are documented with measurements; analytical query
+correctness is verified separately. Query latency is not measured in Phase 5.
 
 **Validation:** Storage round trips, exact-price schema preservation, corrupted
 metadata/version rejection, commit-to-analytics reconciliation, and cache invalidation.
