@@ -89,13 +89,14 @@ constructors for semantic validation in the CLI.
   Consume every artifact for classic validation before returning any status.
   Preserve durable status fields; reject unknown job membership. Report retained
   worker readiness metadata as observed, never as current alive/dead state.
-- [ ] Run both files, scoped Ruff/format/mypy, independent task review, and commit.
+- [x] Run both files, scoped Ruff/format/mypy, independent task review, and commit.
 
 Task 1 evidence: configuration 308 tests and scoped static checks passed;
 independent spec/quality review accepted the loader/examples. Status initially
 passed 77 tests. Independent review reproduced a journal appearing during final
 classic artifact validation; five new red regressions preceded a final presence
-check. Corrected status: 82 tests and scoped static checks passed, re-review pending.
+check. Corrected status: 82 tests and scoped static checks passed; independent
+re-review accepted the correction with no remaining findings.
 Initial module-missing red runs were collection errors, not behavioral assertions.
 
 ## Task 2: Scoped structured logging and CLI lifecycle
