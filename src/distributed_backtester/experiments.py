@@ -180,6 +180,7 @@ def collect_experiment(
                 "max_observed_in_flight": getattr(
                     backend, "max_observed_in_flight", None
                 ),
+                "backend_diagnostics": getattr(backend, "diagnostics", None),
                 "elapsed_before_finalization_seconds": elapsed,
                 "timings": {**timings, "time_to_first_outcome_seconds": first_seconds},
                 "source_path": str(source_path.resolve()) if source_path else None,

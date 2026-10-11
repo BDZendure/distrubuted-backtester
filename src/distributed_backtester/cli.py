@@ -10,6 +10,7 @@ from pathlib import Path
 
 from distributed_backtester.backends.base import ExecutionBackend
 from distributed_backtester.backends.process import ProcessBackend
+from distributed_backtester.backends.ray import RayBackend
 from distributed_backtester.backends.sequential import SequentialBackend
 from distributed_backtester.data import load_csv
 from distributed_backtester.experiments import run_experiment
@@ -54,10 +55,23 @@ def _parser() -> argparse.ArgumentParser:
     sweep.add_argument("--initial-cash", default="1000")
     sweep.add_argument("--fee-bps", type=int, default=0)
     sweep.add_argument(
-        "--backend", choices=["sequential", "process"], default="sequential"
+        "--backend", choices=["sequential", "process", "ray"], default="sequential"
     )
     sweep.add_argument("--workers", type=int, default=1)
     sweep.add_argument("--max-in-flight", type=int)
+    sweep.add_argument("--ray-address", help="existing GCS host:port or auto")
+    sweep.add_argument("--cpus-per-worker", type=float)
+    sweep.add_argument(
+        "--worker-resource",
+        action="append",
+        default=[],
+        help="Ray custom resource NAME=QUANTITY per worker",
+    )
+    sweep.add_argument(
+        "--object-store-memory",
+        type=int,
+        help="local Ray object store capacity in bytes",
+    )
     sweep.add_argument(
         "--output-dir",
         type=Path,
@@ -68,8 +82,39 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def select_backend(
-    name: str, workers: int, max_in_flight: int | None = None
+    name: str,
+    workers: int,
+    max_in_flight: int | None = None,
+    *,
+    ray_address: str | None = None,
+    cpus_per_worker: float | None = None,
+    worker_resources: Sequence[str] = (),
+    object_store_memory: int | None = None,
 ) -> ExecutionBackend:
+    if name == "ray":
+        resources: dict[str, float] = {}
+        for item in worker_resources:
+            key, separator, value = item.partition("=")
+            if not separator or key in resources:
+                raise ValueError(
+                    "worker resources require unique NAME=QUANTITY entries"
+                )
+            resources[key] = float(value)
+        return RayBackend(
+            workers,
+            max_in_flight=max_in_flight,
+            address=ray_address,
+            cpus_per_worker=1.0 if cpus_per_worker is None else cpus_per_worker,
+            resources=resources,
+            object_store_memory=object_store_memory,
+        )
+    if (
+        ray_address is not None
+        or cpus_per_worker is not None
+        or worker_resources
+        or object_store_memory is not None
+    ):
+        raise ValueError("Ray resource and address options require --backend ray")
     if name == "process":
         return ProcessBackend(workers, max_in_flight=max_in_flight)
     if name != "sequential" or workers != 1 or max_in_flight is not None:
@@ -93,7 +138,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if options.command == "sweep":
             backend = select_backend(
-                options.backend, options.workers, options.max_in_flight
+                options.backend,
+                options.workers,
+                options.max_in_flight,
+                ray_address=options.ray_address,
+                cpus_per_worker=options.cpus_per_worker,
+                worker_resources=options.worker_resource,
+                object_store_memory=options.object_store_memory,
             )
             summary = run_experiment(
                 options.data,
