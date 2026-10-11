@@ -107,24 +107,26 @@ CLI: `python -m distributed_backtester.performance compare --baseline DIR
 including sequential, process-2/4/8 and Ray-2/4/8 configurations. Reuse the existing
 owned local harness without duplicating scheduling, startup or memory observation.
 
-- [ ] Write failing tests for complete output equality across distinct code/job IDs,
+- [x] Write failing tests for complete output equality across distinct code/job IDs,
   changed fills/equity/config/data, tampered/missing artifacts, incorrect identities,
   failed/incomplete runs, mismatched environments/configurations/repetitions,
   invalid timings and protected output. Test known ratio calculations.
-- [ ] Run failures before implementation.
-- [ ] Read reports and recompute raw-sample medians/ranges, jobs/sec, speedup and
+- [x] Run failures before implementation.
+- [x] Read reports and recompute raw-sample medians/ranges, jobs/sec, speedup and
   parallel efficiency. Require identical dataset and config definitions, method,
   declared resource/backend settings and relevant interpreter/dependency/hardware
   environment. Preserve the two implementation identities separately.
-- [ ] Verify every retained trial using canonical manifest/index/full snapshots,
+- [x] Verify every retained trial using canonical manifest/index/full snapshots,
   exact producer identities and declared generated configs. Compare all result
   fields, sorting by canonical configuration, excluding only validated engine_id
   when release identity differs. Keep dataset provenance and execution/accounting
   policy. Reject every failed outcome and semantic difference.
-- [ ] Publish actual before/after ratios, variability, sampling limitations and
+- [x] Publish actual before/after ratios, variability, sampling limitations and
   observed memory fields without manufacturing unavailable values. Refuse existing
   or source-alias output and publish atomically only after all checks.
-- [ ] Run scoped tests/static checks; obtain independent task review and commit.
+- [x] Run scoped tests/static checks; obtain independent task review and commit.
+
+Task 2 evidence: initial 32-test missing-feature red run; expanded full-trace and metadata regressions observed red before fixes. Final scoped run: 44 passed in 9.95 s. Scoped Ruff/mypy passed; independent review identified missing child environment verification, then confirmed the four new rejection cases and valid release-normalized comparisons after the fix. Formal process/Ray artifact verification remains in Task 3.
 
 ## Task 3: Measured optimization experiments
 
