@@ -6,7 +6,7 @@ The Phase 1 engine implements a deterministic daily backtester for one asset,
 USD, whole shares, and long-only targets. Phase 2 adds immutable jobs, parameter
 sweeps, sequential and local process backends, incremental detailed export, a
 compact result index, and a benchmark runner. Phase 3 adds optional Ray actors.
-Release `0.7.0` retains strict CSV
+Version `0.8.0` retains strict CSV
 loading, the SMA strategy, next-open execution, exact accounting, return and
 drawdown metrics, and versioned JSON export. Runtime dependencies in
 `pyproject.toml` are empty. CSV parsing, integer arithmetic, `Fraction`, command
@@ -16,8 +16,9 @@ The optional `benchmark` extra pins `psutil==7.2.2` for memory sampling.
 The [Phase 1 plan](phase-1-plan.md) defines the engine scope, and the
 [Phase 2 plan](phase-2-plan.md) defines local experiment execution. The
 [Phase 1 verification report](phase-1-report.md) records the engine evidence;
-the [Phase 2 report](phase-2-report.md) records the current commands,
-checks, environment, packaging evidence, and limitations. This guide
+the [Phase 2 report](phase-2-report.md) records its parallel execution checks,
+environment, packaging evidence, and limitations. Current operational checks
+are recorded in the [Phase 7 report](phase-7-report.md). This guide
 describes implemented contracts; it does not infer verification from a plan or
 quote a provisional test count. See the
 [beginner guide](clear%20explanation.md) for setup and plain-language definitions.
@@ -27,6 +28,14 @@ Phase 4 adds a local durable scheduler around Ray. Classic Phase 3 execution
 still has no recovery protocol or multiple-machine performance claim.
 Phase 5 adds optional exact Parquet, a verified explicit cache, and DuckDB import
 of complete result snapshots. See [storage commands](storage.md).
+
+**Phase 7 complete:** configuration, operational logging/status, signal
+handling, and installed Docker targets passed native, installed-wheel and Linux
+ARM64 release checks. The [Phase 7 report](phase-7-report.md) and
+[verification record](phase-7-verification.json) record the final checks and
+limits. Remote CI and Linux AMD64 execution remain unobserved. The Phase 6
+measurements remain historical results from archived `0.7.0` wheels and their
+recorded source identities. Phase 8 is unapproved and requires explicit approval.
 
 ## Actual module boundaries
 
@@ -51,7 +60,11 @@ of complete result snapshots. See [storage commands](storage.md).
 | `measurement.py` | Optional process-tree RSS sampling, fresh child-process timing, and host metadata |
 | `benchmark.py` | Fresh-process trials, artifact verification, rotating repetitions, raw observations, and summaries |
 | `storage_measurement.py`, `storage_benchmark.py` | Format loads, repeated experiments, cache reuse, serialization/transfer, high-water RSS, raw verified repetitions |
-| `cli.py`, `__main__.py` | Backtest/sweep options, input/output checks, invocation, export, and user-facing errors |
+| `configuration.py`, `cli_options.py` | Strict command-specific TOML defaults and argument preparation |
+| `operational_logging.py` | Scoped JSON observations and serializable worker logging context |
+| `operational_status.py` | Validated read-only journal or complete classic-export status |
+| `cli_lifecycle.py` | Scoped SIGINT/SIGTERM translation into existing cleanup paths |
+| `cli.py`, `__main__.py` | Command options, input/output checks, invocation, export, and user-facing errors |
 
 The implemented boundaries are:
 
@@ -341,12 +354,14 @@ The complete example command is:
   --output artifacts/example.json
 ```
 
-`--data`, `--symbol`, and `--price-basis raw` are required. Defaults are fast 2,
+`--data`, `--symbol`, and `--price-basis raw` are required, either explicitly or
+through `backtest --config`. Defaults are fast 2,
 slow 3, initial cash 1000, and fee 0 bps. Positive windows require fast < slow;
 cash must be positive exact micro-USD; fees are integers from 0 to 10000.
 `--output` selects a JSON file, otherwise JSON goes to stdout.
 `--overwrite` permits replacing that file. `backtest --help` explains options;
-top-level `--version` reports the installed release, `0.7.0` for this version. The
+top-level `--version` reports installed package metadata; the working version is
+`0.8.0`. Reinstall after a metadata change to update an existing environment. The
 [beginner guide's option table](clear%20explanation.md#run-the-included-example)
 explains each argument.
 
@@ -370,7 +385,8 @@ python -m distributed_backtester sweep \
 
 Use `--backend sequential --workers 1`, omit `--max-in-flight`, and choose a
 different new directory for the reference run. Sweep fast/slow lists and
-`--output-dir` are required. The default backend is sequential with one worker;
+`--output-dir` are required, either explicitly or through `sweep --config`.
+The default backend is sequential with one worker;
 the process backend requires positive workers and a positive pending limit.
 Every Cartesian pair must satisfy `1 <= fast < slow`. Any invalid pair rejects
 the whole grid before directory creation. Duplicate configurations execute once,
@@ -407,8 +423,8 @@ support; this implementation does not claim universal filesystem behavior.
 
 ## Release identity and reproducibility limits
 
-For an installation of release `0.7.0`, the engine ID is
-`distributed-backtester/0.7.0:daily-long-only-v1`. The release component comes
+For an installation of version `0.8.0`, the engine ID is
+`distributed-backtester/0.8.0:daily-long-only-v1`. The release component comes
 from installed package metadata; the suffix identifies the declared simulation
 semantics. It is not a source-code hash. Editing code in an editable installation
 can leave the release and engine ID unchanged, so that ID alone does not identify
@@ -1121,3 +1137,298 @@ See [performance instructions and raw evidence](performance.md) for exact
 ranges, CPU/memory observations, canonical wheel/matrix reproduction commands,
 and the completed backend table, plus
 [ADR 0008](decisions/0008-measured-performance.md) for the accepted design.
+
+## Phase 7: operational interfaces
+
+**Phase 7 complete, version `0.8.0`.** These are the verified source
+contracts. Final native, installed-wheel and Linux ARM64 runtime/dev checks
+passed; the [completion report](phase-7-report.md) records the evidence.
+Configured CI is not an observed CI result. Phase 8
+is unapproved. This section introduces no performance or memory measurements;
+the Phase 6 evidence above retains its archived `0.7.0` source and commit IDs.
+
+### Flat TOML defaults and command preparation
+
+```python
+load_configuration(path: Path, command: str) -> dict[str, object]
+configuration_defaults(argv: Sequence[str]) -> tuple[str | None, dict[str, object]]
+```
+
+`configuration.py` uses standard-library `tomllib`. A document is a flat table
+with required integer `schema_version = 1` and string
+`command = "backtest"`, `"sweep"`, or `"resume"`, matching the invoked subcommand.
+Nested sections, unknown keys, wrong types and unsupported schema versions are
+errors. Version 1 is the configuration schema, independent of package `0.8.0`
+and result/journal schemas. Only those three run commands accept `--config`.
+
+Keys use CLI option names with underscores. Supported field groups are:
+
+| Group | Keys | Commands |
+| --- | --- | --- |
+| Input and logging | `data`, `data_format`, `dataset_version`, `log_level` | backtest, sweep, resume |
+| Simulation | `symbol`, `price_basis`, `fast`, `slow`, `initial_cash`, `fee_bps` | backtest, sweep |
+| Single-result output | `output`, `overwrite` | backtest |
+| Worker/Ray settings | `workers`, `max_in_flight`, `ray_address`, `cpus_per_worker`, `worker_resource`, `object_store_memory` | sweep, resume |
+| Sweep scheduling/output | `backend`, `durable`, `max_attempts`, `job_timeout`, `retry_delay`, `output_dir` | sweep |
+| Existing durable output | `output_dir` | resume |
+
+Integers require exact integer types, excluding booleans. Backtest `fast`/`slow`
+are integers; sweep windows are nonempty arrays of positive integers.
+`overwrite`/`durable` require TOML booleans. `cpus_per_worker`, `job_timeout` and
+`retry_delay` accept finite integers/floats and convert to floats. Other scalar
+fields are strings, including `initial_cash`, which preserves decimal text for
+`parse_money`. `worker_resource` is a nonempty string array of `NAME=QUANTITY`
+entries. The existing backend constructor validates quantities, resource names
+and capacity; money, windows, fees and retry policy use existing domain validators.
+
+Choices are exact and case-sensitive: data format `auto|csv|parquet`, price basis
+`raw`, backend `sequential|process|ray`, and log level
+`OFF|ERROR|WARNING|INFO|DEBUG`. NaN/infinity and bool-as-int coercion are rejected.
+Required run fields can come from the file or CLI; the loader itself requires
+only the schema and command headers. Parsing/type/domain validation precedes
+application output creation. The shell can independently create redirected files.
+
+`data`, `output`, and `output_dir` in TOML resolve against the configuration
+file's resolved parent. Explicit CLI paths retain working-directory semantics.
+The configuration path itself is interpreted from the working directory.
+Output/config aliases are rejected; existing input/output alias checks remain.
+The bundled files beside `sma.csv` omit destinations so each invocation can
+choose a fresh file or experiment directory.
+
+`cli_options.py` prepares defaults before building the ordinary argparse parser.
+Explicit scalar, path and window-list arguments replace file defaults.
+`BooleanOptionalAction` provides `--overwrite`/`--no-overwrite` for backtest and
+`--durable`/`--no-durable` for sweep, so explicit false can override TOML true.
+Both default to false without configuration. Disabling durable mode does not
+remove configured retry-only options; those are invalid when durable is false.
+Durable sweeps require Ray; resume selects Ray and reads the saved policy rather
+than accepting a new grid or retry policy.
+
+`--worker-resource` uses `ExplicitAppend`: its first explicit occurrence replaces
+the entire configured array, and subsequent occurrences append to that new CLI
+list. With no explicit occurrence, the configured array is retained. Parsing
+copies explicit values without mutating configuration/parser defaults, so reusing
+the parser does not carry a previous invocation's resources into a later one.
+Duplicate resource names are rejected. This follows the same explicit-value
+override contract as the other configuration fields.
+
+```bash
+python -m distributed_backtester backtest --config examples/backtest.toml \
+  --fee-bps 10 --no-overwrite --output artifacts/phase7-configured.json
+python -m distributed_backtester sweep --config examples/sweep.toml \
+  --backend process --workers 2 --max-in-flight 4 --fee-bps 10 \
+  --no-durable --output-dir artifacts/phase7-configured-process
+```
+
+### Scoped logging and explicit worker context
+
+`operational_logging.py` owns the dedicated
+`distributed_backtester.operations` logger. `log_session(level)` temporarily
+installs its JSON handler and sets level, propagation and disabled state, then
+restores the caller's handlers and settings on every exit. It does not configure
+the root logger. Context-variable tokens restore level/context in nested scopes.
+Concurrent logger reconfiguration from different threads is unsupported.
+
+Logging defaults to `OFF`. Opt-in records are JSON lines on stderr, with
+`schema_version = 1`, a UTC `timestamp`, `level`, `event`, and process `pid`.
+Applicable context includes `experiment_id`, `job_id`, `attempt_id`,
+`generation`, and event-specific fields such as `attempt_generation` and
+`attempt_number`. Context fields are JSON scalars with finite numbers; reserved
+record names cannot be supplied as context. Severity thresholds filter events.
+stdout retains existing result/summary JSON. A backtest using `--output` writes
+the result file instead of a success document on stdout. Argument-parser
+diagnostics and unrelated library messages are not part of this JSON schema.
+Native Ray/Abseil can print failure diagnostics or stack traces on stderr beside
+application records. Only the application's operational records follow the
+JSON logging schema; the complete stderr stream is not guaranteed to be JSON.
+
+```python
+LogState(level: str, context: dict[str, object])
+capture_logging() -> LogState
+worker_session(state: LogState | None)
+event_context(**values: object)
+emit_event(event: str, *, level: str = "INFO", **values: object) -> None
+```
+
+`LogState` captures serializable settings, without handler or stream objects.
+The process backend explicitly passes it to its spawn initializer, then recreates
+a local logging session around job execution. Ray pool startup captures the
+driver context and passes it to actor construction; durable execution adds
+attempt context. OFF retains the original worker invocation shape. Neither
+spawn nor Ray is assumed to inherit the driver's context variables or handlers.
+
+Ray uses `log_to_driver=False`. Actor events stay in worker-local Ray session
+logs. The driver emits readiness, collection/export, attempt claim/failure and
+durable outcome observations through its own stderr. `result_committed` is
+emitted only after `Journal.commit` returns; its disposition distinguishes a
+new commit from an identical duplicate acknowledgment. A stale reply produces
+`result_rejected`. These observations do not replace the journal's authoritative
+transactions or establish final JSON publication.
+
+Handler serialization/write/flush failures are swallowed as best-effort
+delivery. A closed/full log destination must not change results or replace a
+workload exception. Missing, delayed or reordered logs do not imply journal
+state. Worker PIDs/node IDs are observational metadata outside economic/job
+identity. Log timing is not performance evidence.
+
+### Validated read-only status
+
+```python
+read_status(output: Path, *, job_id: str | None = None) -> dict[str, object]
+```
+
+`operational_status.py` implements the CLI status boundary. It starts no runtime,
+creates no experiment, resumes no work and takes no coordinator writer lock.
+The path must have no traversal or symlink components. Its source selection is:
+
+| Source | Validation and published fields |
+| --- | --- |
+| Present `journal.sqlite3` | Existing read-only journal transaction validates saved state; preserves schema, experiment ID, generation, policy, publication flag, counts, jobs, attempts and events; adds `source_kind = "journal"` |
+| No journal | Complete `read_experiment_snapshot` classic export, exhausting every detailed artifact and the final metadata recheck; reports `source_kind = "classic"`, publication complete, terminal jobs and aggregate counts |
+
+A corrupt journal never falls back to files. Classic status checks that no
+journal appeared during the read and that the source remained classic. Missing,
+incomplete or corrupt classic exports fail explicitly. They are not resumable
+or live scheduler snapshots. Classic counts have zero pending/running jobs.
+Journal status can observe pending/running jobs while a coordinator is active;
+the publication flag describes derived export completion, not worker liveness.
+
+`--job-id` must be a lowercase 64-character SHA-256 digest belonging to the
+experiment. Validation covers the whole source before filtering, including
+unselected artifacts/state. Selection filters `jobs` and durable `attempts`;
+durable `events` retain selected-job events and experiment-wide events with no
+job ID. `selected_job_id` identifies the selection. `counts`, publication
+metadata and any worker observations remain experiment-wide. Unknown membership
+is an error rather than an empty successful selection.
+
+Classic `execution.json` can contribute `worker_observations` with
+`source = "execution.json"`, `kind = "last_observed"`, and retained workers.
+This is historical readiness/identity metadata, not an alive/dead probe. The
+journal status reader does not retain worker identities, so durable status omits
+that field. A historical running attempt is not proof that its worker survives.
+
+Read-only journal access can maintain SQLite's SHM or create/remove an empty
+WAL. This is permitted bookkeeping, without changing authoritative results.
+The smoke comparison still checks the database, coordinator lock, exports and
+nonempty WAL, which can contain authoritative committed frames.
+
+### Interruption, cleanup and durable recovery
+
+`cli_lifecycle.py` installs scoped SIGINT/SIGTERM handlers around CLI execution
+on the main thread and restores previous handlers even on failure. The first
+signal raises `CommandInterrupted`, a `KeyboardInterrupt` subclass, using
+`128 + signum`: controlled SIGTERM returns 143 and controlled SIGINT/Ctrl-C
+returns 130. `SignalState` retains the signal when a native library translates
+the exception into plain `KeyboardInterrupt`, preserving its exit mapping.
+Ray initialization is wrapped to restore driver signal handlers afterward.
+Further shutdown signals during this scope let cleanup continue. The first
+signal arriving during owned cleanup is deferred until cleanup finishes;
+secondary cleanup failures are retained as notes on the primary interruption.
+A non-main-thread library caller keeps
+the process-wide handlers unchanged. No IO or scheduler operation runs inside
+the signal handler.
+
+The CLI exit/cleanup contract includes startup. Ray 2.59.0 exposes no public
+opt-out for its startup SIGTERM registration. The version-bound adapter in
+`backends/ray.py` preserves the active main-thread CLI bridge through
+`ray._private.utils.set_sigterm_handler`, delegates platform registration and
+restores that private helper on every exit. Ordinary library calls and other
+threads retain Ray's registration behavior. Review the adapter with the Ray
+pin when upgrading dependencies.
+
+Actual native probes during Ray signal registration and immediately after
+CoreWorker construction returned 143, restored caller handlers and left Ray
+disconnected. These checks exercise concrete startup windows; they do not
+establish every timing interleaving or external-cluster behavior. Native failure
+diagnostics can accompany application JSON on stderr.
+
+Unwinding uses existing collector/runtime/journal cleanup: cancel pending
+futures, close owned actors/connections, and release the coordinator lock.
+Disconnecting from an external Ray cluster does not stop it. Process-pool exit
+can wait for already-running jobs. Cleanup has no guaranteed time bound; the
+CLI signal bridge introduces no cleanup deadline. SIGKILL bypasses Python
+cleanup, and Docker can send it after its stop timeout. See the
+[Docker stop behavior](https://docs.docker.com/reference/cli/docker/container/stop/).
+
+Classic partial exports have no recovery guarantee. Durable resume requires the
+complete local experiment directory and matching dataset bytes/metadata,
+installed source fingerprint and engine identity. Use the same built image by
+image ID/digest and the same input; a reused mutable tag is insufficient.
+Changing package source, including operational modules, changes implementation
+and job identity. Phase 6 `0.7.0` journals cannot be assumed compatible with
+Phase 7 `0.8.0`. Resume advances generation, fences abandoned attempts and
+preserves the saved retry budget under single-coordinator exclusion. Resource
+settings may change. See [reliability](reliability.md) and
+[container recovery procedures](operations.md).
+
+### Installed Docker targets and dependency locks
+
+All Docker stages share this immutable official Python index:
+
+```text
+python:3.12.15-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258
+```
+
+The [official image metadata](https://raw.githubusercontent.com/docker-library/repo-info/master/repos/python/remote/3.12.15-slim-bookworm.md)
+includes Linux amd64 and arm64. Matching builder/runtime stages build and
+install the project wheel into `/opt/venv`; runtime includes the existing
+benchmark/distributed/storage extras. Default `dev` adds development/build tools
+and checkout fixtures under `/workspace`, using the same installed wheel with
+no editable install or `PYTHONPATH=src`. Both run as UID/GID `10001:10001`, with
+home `/home/backtester`, working directory `/outputs`, an exec-form
+`distributed-backtester` entrypoint, and `STOPSIGNAL SIGTERM`.
+
+`container-build.lock`, `container-runtime.lock` and `container-dev.lock` are
+actual hash-enforced binary-wheel locks for CPython 3.12.15 on Debian bookworm
+Linux amd64/arm64. They pin transitive versions and permitted SHA-256 artifacts;
+the dev lock includes the runtime closure. Docker installs with
+`--require-hashes`, then installs the project wheel with `--no-deps` to avoid
+unpinned re-resolution. Earlier macOS benchmark snapshots are observed version
+lists, not universal hash locks. Published metadata and resolved hashes are
+separate from downloaded-wheel verification and successful Linux execution.
+
+Mount inputs read-only and the output parent writable by the container UID.
+Durable persistence needs the entire experiment tree, including journal WAL/SHM
+and coordinator lock, on a filesystem meeting the existing local guarantees.
+Use `--init` for forwarding/reaping. Example resource limits in the runbook are
+starting settings, not measured capacity or memory minima. The container is a
+CLI packaging/development boundary; it adds no API, dashboard or scheduler
+service. Core wheel installations still need no runtime extras.
+
+Final native verification passed 1,928 tests in 231.48 seconds, including five
+actual operational native cases. Ruff checks passed with 147 files formatted,
+mypy checked 102 source files and pip reported no broken requirements. The
+isolated installed core helper returned `ok=true`.
+
+Actual Linux ARM64 builds and installed runtime/dev checks used Python 3.12.15,
+glibc 2.36 and UID 10001. The final runtime helper returned `ok=true` with
+Ray/storage/signals; the dev installed-core helper returned `ok=true`, and its
+Ruff, 143-file format, 102-source mypy and pip checks passed. The verified package
+identity is:
+
+```text
+distributed-backtester/0.8.0:daily-long-only-v1
+source_sha256=a3edda1731d8694fda5d6987e570e0cca365bbee22d18bbfc0dbd116003f618f
+```
+
+Final images retain that package identity:
+
+```text
+runtime=sha256:5932b2b6dd36792bfe563be5f00f17ffb771fe33829a807193211b7d13e3dc5e
+dev=sha256:664b3494bfcafddbe94b311c0e3c85f7591074593944ba53dafb25f9c714297a
+```
+
+Actual Docker stop/INT/KILL drills returned 143/130/137 with OOM false. Each
+same-image resume advanced generation 1 to 2, retained a unique committed result
+per job and validated the derived exports. SIGKILL recovery uses the journal;
+it does not run graceful cleanup. See the [Phase 7 report](phase-7-report.md) and
+[verification record](phase-7-verification.json) for exact lifecycle evidence
+and the images used for those drills.
+
+Remote CI, Linux AMD64 execution, the complete Linux dev-image test suite,
+Docker Desktop bind-filesystem durability, power-loss recovery and
+external-cluster behavior remain unobserved. Published AMD64 lock/base support
+is separate from an observed AMD64 run. Test/smoke durations add no performance
+or memory claim. Consult
+[development](development.md) for lock regeneration and required checks and
+[operations](operations.md) for mounts, logs, status and recovery commands.

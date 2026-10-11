@@ -7,8 +7,8 @@ hypothetical purchases, sales, fees, cash, and the value of shares still held.
 The Phase 1 engine implements that replay for one asset, one daily price table,
 and one set of settings at a time. Phase 2 adds parameter sweeps that run many
 independent simulations sequentially or with local worker processes. Phase 3 adds
-Ray workers and connections to an existing cluster. The current package release
-is `0.7.0`.
+Ray workers and connections to an existing cluster. The package version
+is `0.8.0`, with **Phase 7 complete**. Phase 8 has not been approved.
 
 You can run the command below and get a JSON result containing the settings,
 data fingerprint, trades, order outcomes, daily portfolio values, and summary
@@ -20,6 +20,12 @@ every machine has matching installed code. Actual performance across physical
 machines has not been established. Phase 4 adds optional recovery using a local SQLite journal. The core uses Python's standard library; Ray and memory sampling
 are optional dependencies. Phase 5 adds optional Parquet data files and a DuckDB
 database for searching complete answers. The original CSV example still works.
+Phase 6 adds profiling and reviewed Python optimizations. Phase 7 adds TOML
+settings files, optional progress logs, validated status, interruption handling,
+and Docker packaging around the same command-line program. Native, installed-wheel
+and Linux ARM64 container release checks passed. The
+[Phase 7 report](phase-7-report.md) records those checks and their limits; this
+guide makes no new speed or memory claim.
 
 ## Python and the tools in simple terms
 
@@ -460,16 +466,17 @@ for the evidence and limitations.
 
 ## What is planned next
 
-| Phase | Planned capability |
+| Phase | Capability and current status |
 | --- | --- |
-| 7 | Operational tooling and a reproducible developer environment |
-| 8 | Final documentation and portfolio evidence based on implemented facts |
+| 7 | Operational tooling and an installed Docker environment; complete with native and Linux ARM64 verification |
+| 8 | Final documentation and portfolio evidence based on implemented facts; unapproved |
 
 Phase 6 profiling and reviewed Python optimizations are available; the final
-backend comparison is verified. Later planned capabilities need their own
-checkpoint. Phase 4 recovery does not promise coordinator high availability or
-recovery after disk loss. Several workers may be slower for small jobs, so scaling
-claims need actual measurements.
+backend comparison is verified. Those are historical Phase 6 results from the
+archived `0.7.0` source. Phase 7 has its own [verification report](phase-7-report.md), and Phase 8
+requires explicit approval. Phase 4 recovery does not promise coordinator high
+availability or recovery after disk loss. Several workers may be slower for small jobs, so
+scaling claims need actual measurements.
 
 Read the [technical explanation](technical-explanation.md) for the exact module
 interfaces and guarantees, the [Phase 1 plan](phase-1-plan.md) for the accepted
@@ -734,3 +741,219 @@ Read [performance instructions and evidence](performance.md) for all six
 profiling combinations, exact raw medians and fingerprints, wheel commands, and
 the completed backend matrix. The [technical guide](technical-explanation.md#phase-6-profiling-and-measured-python-optimizations)
 explains the exact interfaces and comparison checks.
+
+## Phase 7: settings, progress, status, and Docker
+
+**Phase 7 complete, version `0.8.0`.** The commands here explain the
+verified implementation. The final native suite passed 1,928 tests, and the
+installed core and Linux ARM64 container helpers passed. See the
+[completion report](phase-7-report.md) and
+[verification record](phase-7-verification.json) for exact checks and limits.
+Phase 8 requires explicit approval. The Phase 6 measurements above
+remain results from their archived `0.7.0` implementations.
+
+### Use a settings file in Terminal or VS Code
+
+Open the repository in Terminal, or choose **Terminal > New Terminal** in VS
+Code. Activate the environment from the setup section, then run commands at the
+shell prompt. Open a TOML file in VS Code's editor to change settings. **TOML**
+is a text format containing names and values; saving it does not start a run.
+If the environment was installed before the version change, rerun the setup
+installation command to refresh its metadata. `python -m distributed_backtester
+--version` reports the installed version.
+
+The included [backtest configuration](../examples/backtest.toml) is beside
+`sma.csv`. Its contents are:
+
+```toml
+schema_version = 1
+command = "backtest"
+data = "sma.csv"
+data_format = "csv"
+symbol = "SYNTH"
+price_basis = "raw"
+fast = 2
+slow = 3
+initial_cash = "1000"
+fee_bps = 0
+log_level = "OFF"
+```
+
+The file is flat: there are no `[backtest]` or `[logging]` sections. The schema
+version describes the file format, not the package release. `command` must match
+the command you run. Keep cash in quotes so it remains exact decimal text.
+Unknown names, wrong value types, and unsupported choices are rejected.
+
+Run it from the repository directory, choosing an output path and overriding
+the file's zero-fee setting:
+
+```bash
+python -m distributed_backtester backtest --config examples/backtest.toml \
+  --fee-bps 10 --output artifacts/phase7-reference.json
+```
+
+`data = "sma.csv"` is relative to the TOML file, so it finds
+`examples/sma.csv`. Paths written explicitly on the command line, such as this
+`--output`, are relative to the terminal's current directory. Moving a settings
+file can therefore change where its paths point. Settings such as fees, windows
+and paths written on the command line replace their file defaults; omitted
+settings keep their defaults.
+`--no-overwrite` disables replacement even if a backtest file says
+`overwrite = true`. The same pattern, `--no-durable`, disables a sweep file's
+`durable = true`; retry-only settings still require durable mode.
+
+The included [sweep configuration](../examples/sweep.toml) uses
+`command = "sweep"`, `fast = [1, 2]`, and `slow = [3, 4]` to select four jobs.
+Both included files omit the output destination. Choose a fresh output child
+when running a sweep, and do not create that child beforehand:
+
+```bash
+mkdir -p artifacts/phase7
+python -m distributed_backtester sweep --config examples/sweep.toml \
+  --backend process --workers 2 --max-in-flight 4 --fee-bps 10 \
+  --output-dir artifacts/phase7/process --log-level INFO \
+  > artifacts/phase7/process-summary.json 2> artifacts/phase7/process-operations.jsonl
+echo $?
+```
+
+`--config` is accepted by `backtest`, `sweep`, and `resume`. Other commands,
+including `status`, take their options directly. For Ray custom resources, the
+first explicit `--worker-resource NAME=QUANTITY` replaces the entire resource
+list from TOML. Further occurrences add to that new command-line list. Without
+the flag, the configured list is retained. Resource names must remain unique. The
+[technical guide](technical-explanation.md#phase-7-operational-interfaces)
+describes all supported fields.
+
+### Watch progress and keep results separate
+
+Logging defaults to `OFF`. `--log-level INFO` enables progress observations such
+as a job starting, finishing, being exported, or being committed to a journal.
+Application records are JSON lines: each line is one event, rather than one
+large result file.
+Choose `ERROR`, `WARNING`, or `DEBUG` for a different severity threshold.
+
+A terminal has two output streams. **stdout** carries the command's answer;
+**stderr** carries operational logs and errors. `>` redirects stdout to a file,
+and `2>` redirects stderr. For one backtest without `--output`:
+
+```bash
+python -m distributed_backtester backtest --config examples/backtest.toml \
+  --fee-bps 10 --log-level INFO \
+  > artifacts/phase7/reference.json 2> artifacts/phase7/reference-operations.jsonl
+echo $?
+python -m json.tool artifacts/phase7/reference.json
+```
+
+Create the parent with `mkdir -p artifacts/phase7` if you have not already done
+so. A backtest with `--output` saves its answer there and prints no success
+document to stdout. Sweeps and `resume` print a JSON summary. Open the log file
+in VS Code, or run `tail -f artifacts/phase7/process-operations.jsonl` in a
+second terminal while the sweep runs. Stop that viewer with Ctrl-C.
+
+Ray workers keep their logs in local Ray session files. The driver reports
+collection and durable commit observations on its stderr; worker logs are not
+forwarded into that stream. A missing log line does not mean a commit failed,
+and a worker's finished line does not establish that its result was saved.
+Logging is best effort. Use validated status for saved state.
+Native Ray/Abseil failure diagnostics can also print text or stack traces on
+stderr. A redirected stderr file can therefore contain those diagnostics beside
+application JSON records.
+
+### Read saved status and understand exit codes
+
+After the configured process sweep finishes, inspect its complete output:
+
+```bash
+python -m distributed_backtester status --output-dir artifacts/phase7/process \
+  > artifacts/phase7/process-status.json
+echo $?
+python -m json.tool artifacts/phase7/process-status.json
+```
+
+Status checks all jobs and detailed artifacts before publishing an answer for a
+classic sweep. An incomplete classic output is an error, so this command is not
+a live progress meter for an unfinished classic run. A durable Ray experiment
+uses its validated journal, which can show `pending`, `running`, `succeeded`,
+and `failed` jobs while work is in progress. A present journal is authoritative;
+a broken journal does not fall back to exported JSON files.
+
+Add `--job-id` followed by a job ID from the status document to inspect one job.
+The ID must be a lowercase 64-character SHA-256 digest. Jobs and attempts are
+selected, but `counts` still describes the whole experiment. Status never starts
+workers, creates a run, or resumes it. Any retained worker IDs are last-observed
+details, not proof that those workers are currently alive.
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | The command completed successfully |
+| `1` | A sweep or resume completed with at least one recorded job failure |
+| `2` | Arguments, data, configuration, files, or a reported fatal execution error prevented success |
+| `130` | Controlled Ctrl-C / SIGINT interruption |
+| `143` | Controlled SIGTERM interruption |
+
+These controlled signal exits include startup. Actual Ray startup interruption
+checks returned 143, restored caller signal handlers and disconnected Ray. The
+[technical guide](technical-explanation.md#interruption-cleanup-and-durable-recovery)
+explains the pinned startup adapter and cleanup ownership.
+
+Use `echo $?` immediately after a command to read its exit code. Ctrl-C asks the
+running program to unwind and clean up; it can wait for already-running process
+jobs. Cleanup has no promised short time limit. A forced SIGKILL bypasses that
+cleanup. Classic exports have no resume guarantee. Durable recovery requires
+the same input bytes, installed source and engine identity, the whole journal
+directory, and a single coordinator. An old Phase 6 journal is not made
+compatible by upgrading to Phase 7. See [recovery commands](reliability.md).
+
+### Docker basics
+
+A Docker **image** packages Python and the installed application. A
+**container** runs that image. A **volume** keeps outputs independently of a
+container, so removing the container does not discard those outputs.
+
+The Dockerfile pins the official Python 3.12.15 slim bookworm base by digest.
+The runtime target installs the project wheel and the existing optional extras;
+the dev target adds development tools and checkout files, using the installed
+wheel as well. Both run as user/group `10001:10001` by default. Linux dependencies
+have exact versions and wheel hashes; the earlier Mac dependency snapshots are
+not universal installation locks.
+
+With Docker running, build and run from the repository directory:
+
+```bash
+docker build --target runtime -t distributed-backtester:0.8.0-runtime .
+docker volume create backtester-guide-outputs
+docker run --rm --init --stop-timeout=30 \
+  --mount "type=bind,source=$PWD/examples,target=/inputs,readonly" \
+  --mount type=volume,source=backtester-guide-outputs,target=/outputs \
+  distributed-backtester:0.8.0-runtime backtest \
+  --config /inputs/backtest.toml --fee-bps 10 --log-level INFO \
+  --output /outputs/reference.json
+```
+
+The read-only `/inputs` mount supplies settings and prices. `/outputs` is the
+working directory and writable volume; choose a fresh filename or explicitly
+use `--overwrite` when repeating this example. Host bind outputs must be writable
+by the container's UID; the [operations guide](operations.md) explains ownership
+and durable output mounts. Mount the entire durable experiment tree, including
+the journal's companion files and lock, and resume with the same built image
+and input. An image tag alone does not identify immutable source.
+
+Docker sends SIGTERM when stopping this image, then can force SIGKILL after its
+stop timeout if cleanup has not finished. That timeout is not a guarantee that
+application cleanup completes in 30 seconds. Use `--init` for signal forwarding
+and child reaping. The [development guide](development.md) covers the dev target,
+hash locks and required checks; the [operations guide](operations.md) provides
+resource settings, status, stop and resume procedures.
+
+Verified containers ran on Linux ARM64 with Python 3.12.15, glibc 2.36 and UID
+10001. The final runtime helper passed real Ray, Parquet/DuckDB and signal checks;
+the dev image's installed core helper and development checks passed. Actual
+Docker stop, INT and KILL drills returned 143, 130 and 137 with no OOM. Each
+resumed from generation 1 to 2 with one committed result per job and validated
+exports. SIGKILL still bypasses graceful cleanup; the durable journal enables
+recovery. See the [Phase 7 report](phase-7-report.md).
+
+Remote CI, Linux AMD64, the complete Linux dev-image test suite, Docker Desktop
+bind-filesystem durability, power-loss recovery and external-cluster behavior
+remain unobserved. These container checks
+do not add speed or memory measurements, or approval for Phase 8.

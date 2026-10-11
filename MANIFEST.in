@@ -1,6 +1,11 @@
 recursive-include docs *.md
+include docs/phase-7-verification.json
 recursive-include docs/benchmarks *.json
 recursive-include docs/benchmarks *.pstats *.patch
 recursive-include requirements *.lock
 recursive-include examples *.csv
+recursive-include examples *.toml
 recursive-include tests *.py
+recursive-include scripts *.py
+include Dockerfile .dockerignore
+include .github/workflows/ci.yml

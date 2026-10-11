@@ -112,12 +112,12 @@ worker initialization; context managers restore caller logging/signal state.
 `emit_event` publishes JSON with schema version, UTC timestamp, level, event,
 pid and applicable experiment/job/attempt/generation identifiers.
 
-- [ ] Write failing API tests for JSON line escaping, severity filtering, OFF,
+- [x] Write failing API tests for JSON line escaping, severity filtering, OFF,
   nested context restoration, existing logger ownership and failed stderr writes.
-- [ ] Run `.venv/bin/python -m pytest tests/test_operational_logging.py -q`.
-- [ ] Implement scoped standard-library JSON logging and explicit worker context
+- [x] Run `.venv/bin/python -m pytest tests/test_operational_logging.py -q`.
+- [x] Implement scoped standard-library JSON logging and explicit worker context
   capture/initialization. Keep default backend call arity unchanged when OFF.
-- [ ] Write failing real CLI tests for `--config`, explicit precedence and CWD,
+- [x] Write failing real CLI tests for `--config`, explicit precedence and CWD,
   output alias protection, stdout/stderr separation, clear config errors and
   status filtering. Example:
 
@@ -125,17 +125,33 @@ pid and applicable experiment/job/attempt/generation identifiers.
   assert main(["backtest", "--config", str(config), "--fast", "1"]) == 0
   ```
 
-- [ ] Run `.venv/bin/python -m pytest tests/test_operational_cli.py -q`.
-- [ ] Integrate file defaults through argparse without weakening required fields
+- [x] Run `.venv/bin/python -m pytest tests/test_operational_cli.py -q`.
+- [x] Integrate file defaults through argparse without weakening required fields
   or existing choices. Existing commands and exit codes retain their behavior.
-- [ ] Emit worker start/finish/failure, experiment collection/export, and durable
+- [x] Emit worker start/finish/failure, experiment collection/export, and durable
   attempt claim/failure/commit/complete events. Journal commit event emission
   follows the returned durable commit; stdout contains only command results.
-- [ ] Add scoped SIGTERM interruption returning 143 and Ctrl-C returning 130;
+- [x] Add scoped SIGTERM interruption returning 143 and Ctrl-C returning 130;
   restore signal handlers on every exit and retain runtime cleanup/lock release.
   Test with actual subprocess signals and same-identity durable resume.
-- [ ] Run frozen real sequential/process/logged-Ray/durable smoke tests, relevant
+- [x] Run frozen real sequential/process/logged-Ray/durable smoke tests, relevant
   CLI/backend/coordinator regressions and static checks. Obtain review and commit.
+
+Task 2 evidence before final lifecycle corrections: actual native parity passed
+for sequential, process and Ray with logging OFF/INFO. Initial durable SIGINT and
+SIGTERM tests failed, revealing native exception translation and vendor handler
+replacement. The first fix passed both repeated post-claim signal/resume cases
+in 51.09 seconds. Preliminary full suite: 1,844 passed in 459.73 seconds.
+Independent review then found eight boundary defects. Main added 16 actual red
+regressions (10.94 seconds), followed by 46 CLI/logger/review passes (1.65 seconds).
+Independent re-review closed config export alias protection, logging factory/filter
+isolation, resource precedence and scope-entry fallback: 16 passed in 0.76 seconds.
+These are preliminary observations. Startup, cleanup and registration findings
+were subsequently closed with regressions and independent review. Actual native
+operational tests: five passed in 54.08 seconds. Startup probes at Python
+registration and after native CoreWorker construction returned 143 and restored
+caller handlers. Final full native suite: 1,928 passed in 231.48 seconds on frozen
+source. Task 2 code and version metadata were committed as `0895771` and `0dab66a`.
 
 ## Task 3: Installed Docker environment, CI and smoke verification
 
@@ -143,26 +159,45 @@ Files: create `Dockerfile`, `.dockerignore`, `scripts/smoke.py`,
 `tests/test_smoke.py`, `docs/development.md`, `docs/operations.md`;
 modify `.github/workflows/ci.yml` and `MANIFEST.in`.
 
-- [ ] Select and document an official supported Python slim image with immutable
+- [x] Select and document an official supported Python slim image with immutable
   digest, matching builder/runtime stages and a fixed development dependency
   environment. Record Docker daemon/image availability from real commands.
-- [ ] Write failing smoke tests before `scripts/smoke.py`. Its CLI runs a real
+- [x] Write failing smoke tests before `scripts/smoke.py`. Its CLI runs a real
   reference backtest and unique sequential/process sweeps via installed module
   commands, checks expected fees/equity and complete-result equality, validates
   JSON logs/status and reports failures with nonzero status.
-- [ ] Implement smoke helper, optional actual Ray/durable smoke and fresh outputs.
+- [x] Implement smoke helper, optional actual Ray/durable smoke and fresh outputs.
   It runs outside the checkout against an installed package, never mocked runtime.
-- [ ] Build wheel in builder stage, install core/optional extras in runtime, use
+- [x] Build wheel in builder stage, install core/optional extras in runtime, use
   nonroot user, writable mount/temp paths, exec-form entrypoint and SIGTERM.
   Development target installs pinned existing tooling and includes tests.
   Exclude host venv, Git state, caches, local artifacts and benchmark bulk.
-- [ ] Extend CI to run configuration/log/status/signal smoke outside checkout,
+- [x] Extend CI to run configuration/log/status/signal smoke outside checkout,
   installed wheel and actual Docker build/run; retain native Ray/storage tests.
   Keep pinned actions and clear job timeouts. Do not add wall-clock pass criteria.
-- [ ] Execute actual Docker build/run and shutdown/restart where possible. Record
+- [x] Execute actual Docker build/run and shutdown/restart where possible. Record
   exact failed commands if daemon/registry/runtime access is unavailable; provide
   manual commands rather than claiming unobserved success.
-- [ ] Run helper tests, packaging checks, review container/CI changes and commit.
+- [x] Run helper tests, packaging checks and review container/CI changes.
+
+Task 3 preliminary evidence: 14 helper unit tests passed; scoped Ruff, formatting
+and mypy passed. CI YAML parsed and 18 shell blocks passed bash syntax checks.
+Linux CPython 3.12 locks resolve 21 runtime, 33 full development and one build
+package; 52 compatible wheel metadata records were independently validated.
+Actual pinned ARM64 base pull and final runtime/dev image builds succeeded.
+Independent review found three helper defects: the installed probe accepted legacy
+source metadata, wrapper SIGTERM bypassed child cleanup, and config paths shared
+the child CWD. Corrections and discriminating regressions closed all three,
+including a follow-up actual INT launch defect. Independent final review found
+no open findings. Actual Linux status created permitted SQLite SHM/empty WAL;
+13 bookkeeping regressions preceded a narrow helper correction. Final runtime
+helper passed actual Ray/storage/signals and dev installed core smoke passed.
+Actual Docker STOP/INT/KILL exits were 143/130/137 with OOM false. Each resumed to
+one committed job with generation 2 and validated exports. Final dev lint,
+format, mypy and pip checks passed. Exact results are in the
+[verification record](phase-7-verification.json).
+Configured CI is not an observed remote pass; CI retains its named output volume
+until the ephemeral runner is discarded rather than removing that volume.
 
 ## Task 4: Final verification, guides and phase checkpoint
 
@@ -170,12 +205,23 @@ Files: `docs/phase-7-report.md`, operational/development guides, beginner/techni
 explanations, README, architecture, roadmap, dependencies, testing/benchmarking,
 decisions index and `docs/decisions/0009-operational-interface.md`.
 
-- [ ] Freeze source and run all native tests, Ruff lint/format, strict mypy, pip
+- [x] Freeze source and run all native tests, Ruff lint/format, strict mypy, pip
   check, wheel/source build and fresh isolated installation verification.
-- [ ] Execute actual example/config/process/Ray/durable/status/log/signal commands;
+- [x] Execute actual example/config/process/Ray/durable/status/log/signal commands;
   report outcomes accurately, including unavailable container or remote CI steps.
-- [ ] Verify documentation links and final source/archive bytes.
-- [ ] Obtain final independent integration/evidence review and resolve findings.
-- [ ] Synchronize simple/technical guides, publish nine-section completion report,
+- [x] Verify documentation links and final source/archive bytes.
+- [x] Obtain final independent integration/evidence review and resolve findings.
+- [x] Synchronize simple/technical guides, publish nine-section completion report,
   make focused local commits and confirm clean feature branch.
-- [ ] Stop and obtain explicit approval before Phase 8.
+- [x] Stop at the explicit approval checkpoint before Phase 8; approval is pending.
+
+Final evidence: frozen native suite 1,928 passed; Ruff 147 formatted files,
+mypy 102 source files and pip checks passed. Fresh final core wheel, both
+installed images, actual runtime Ray/storage/signals and container recovery
+passed. All 47 package files and 227 expected source-archive files were checked
+against checkout bytes. The final evidence audit reconciled execution records
+and closed a runbook mount defect after an actual red/green Docker check.
+No package/helper or evidence findings remain open. Source archive is refreshed
+after final documentation edits. Named volume `phase7-outputs-20261011-1747`
+is retained. Remote CI and AMD64 remain unobserved. See the
+[completion report](phase-7-report.md) for the approval checkpoint.

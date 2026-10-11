@@ -56,6 +56,15 @@ the same source/data/engine identity; ordinary exports have no resume guarantee.
 Respect single coordinator exclusion and bounded retry rules. No new guarantee
 of immediate or bounded in-process graceful shutdown.
 
+Review corrections: defer first CLI signals during owned cleanup, retain cleanup
+notes and the primary interruption, attempt every handler restoration even when
+a restored caller handler interrupts, and protect partially started runtimes.
+Ray 2.59.0 has no public opt-out for startup SIGTERM registration. A version-bound
+adapter preserves the owned main-thread CLI bridge through its private helper,
+delegates platform registration, and restores the helper on all exits. The pin
+and this coupling need review together when upgrading Ray. Normal library calls
+and other threads retain Ray's registration behavior.
+
 Validation: test first, actual spawned worker JSON and complete sequential/process
 output equality, actual Ray/durable correlations/recovery where available. Run
 full existing native tests and static checks against frozen package source.
@@ -78,8 +87,10 @@ versions and binary artifact hashes. Provide runtime and dev targets, UID/GID
 The dependency-free core wheel remains independently runnable.
 
 Docker CLI 29.5.2 initially found no daemon socket. Starting the installed
-Docker Desktop app made its server reachable at 29.5.2. Actual builds and smoke
-execution still require validation; no successful container outcome is inferred
-from the daemon check. Docker stop allows cleanup before a forced kill;
+Docker Desktop app made its server reachable at 29.5.2. Actual Linux ARM64
+runtime/dev builds, installed smoke and STOP/INT/KILL recovery were then observed.
+See the [completion report](phase-7-report.md) and
+[verification record](phase-7-verification.json). Remote CI and Linux AMD64
+execution remain unobserved. Docker stop allows cleanup before a forced kill;
 our signal bridge does not impose a runtime cleanup deadline.
 [Docker stop behavior](https://docs.docker.com/reference/cli/docker/container/stop/).

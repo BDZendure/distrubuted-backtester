@@ -1,5 +1,29 @@
 # Testing strategy
 
+## Phase 7 operational validation
+
+Configuration tests cover command-specific fields, exact types, file-relative
+paths, aliases and explicit overrides. Logging tests cover JSON scalars, scopes,
+caller ownership and failed streams, factories and filters. Status tests consume
+full classic artifacts, validate durable snapshots and reject source changes.
+Lifecycle regressions exercise interruption during startup, registration and
+cleanup; actual subprocess tests separately send SIGINT/SIGTERM and resume the
+same durable identity. Boundary injections are labeled as unit tests.
+
+The [installed smoke helper](../scripts/smoke.py) checks the hand-calculated
+reference, complete sequential/process/Ray artifacts, actual worker logs,
+configuration, status, journal recovery, Parquet and DuckDB. It rejects editable
+installs and runs commands with isolated Python outside the source checkout.
+Each command has a deadline and retains evidence in a fresh child directory.
+Helper unit tests do not substitute for its actual execution.
+
+See [development checks](development.md), [container operations](operations.md)
+and the [phase plan](phase-7-plan.md) for commands and evidence. Native source is
+frozen during process/Ray runs. Docker stop and forced termination drills are
+separate from helper child-signal tests. Remote CI execution must be observed
+before claiming a remote pass. Performance tests use existing deterministic
+operation counts, without adding an uncalibrated timing threshold.
+
 ## Current checks
 
 Phases 1 and 2 check exact money/contracts, strict CSV validation, SMA decisions,

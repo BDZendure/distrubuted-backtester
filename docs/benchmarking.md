@@ -1,5 +1,12 @@
 # Benchmark methodology
 
+Phase 7 operational smoke durations are execution observations, not throughput
+benchmarks or evidence of optimization. Opt-in logging adds observation work
+inside existing timing boundaries. Keep it OFF for comparisons unless the
+workload explicitly measures logging. CI retains deterministic operation-count
+regressions from Phase 6 and adds no timing-ratio gate. Published Phase 6
+measurements remain historical evidence for their recorded source identities.
+
 Phase 2 implements the local harness and publishes
 [recorded results and raw observations](benchmarks/phase-2/results.md). Phase 3 adds
 the owned local Ray comparison harness below. Multiple-machine Ray

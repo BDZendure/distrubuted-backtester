@@ -1,9 +1,18 @@
 # Dependency plan
 
-## Current Phase 5 environment
+## Current Phase 7 environment
 
 Runtime dependencies are empty. Development/build tools are declared and pinned
 in `pyproject.toml`; installation uses a repository-local virtual environment.
+
+Phase 7 adds no runtime library. `tomllib`, `logging`, `signal` and `argparse`
+provide the operational interface. Container targets install existing optional
+extras using separate Linux CPython 3.12 hash locks:
+[runtime](../requirements/container-runtime.lock),
+[development](../requirements/container-dev.lock), and
+[build](../requirements/container-build.lock). These are distinct from observed
+macOS snapshots. See [container development](development.md#linux-dependency-locks)
+for exact closure, architecture scope, resolution evidence and update procedure.
 
 | Tool | Direct version | Purpose |
 | --- | --- | --- |

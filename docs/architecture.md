@@ -2,7 +2,11 @@
 
 ## Status and scope
 
-This document describes the system through Phase 8. Phase 0 established the
+This document describes the implemented system through Phase 7.
+**Phase 7 is complete, version `0.8.0`.** Native, installed-wheel and Linux ARM64
+runtime/dev release checks passed; see the [Phase 7 report](phase-7-report.md)
+and [verification record](phase-7-verification.json).
+Phase 8 is unapproved and requires explicit approval. Phase 0 established the
 foundation; the approved Phase 1 implements strict CSV loading, SMA signals,
 exact execution/accounting, a deterministic simulation, metrics, JSON export,
 and a CLI. Phase 2 adds stable jobs, parameter sweeps, sequential and process
@@ -13,6 +17,10 @@ adds exact versioned Parquet inputs, explicit verified caching, and DuckDB
 analytical snapshots. Phase 6 adds scoped profiling, full-result comparison,
 bounded native history slicing, and exact integer drawdown comparison. See the
 [Phase 2 report](phase-2-report.md) and [Ray instructions](ray-clusters.md).
+Phase 7 adds configuration, logging, status, signal handling, and installed
+Docker packaging around the existing CLI. Remote CI and Linux AMD64 execution
+remain unobserved. Historical Phase 6 measurements refer to the archived
+`0.7.0` implementations; they establish no new Phase 7 performance result.
 
 The engineering goal is reproducible independent simulations, reliable execution,
 and honest measurements. Strategy profitability is outside the acceptance criteria.
@@ -78,6 +86,8 @@ Current structure (phase reports/plans and additional unit tests abbreviated):
 ```text
 .github/workflows/ci.yml
 .gitignore
+.dockerignore
+Dockerfile
 LICENSE
 MANIFEST.in
 README.md
@@ -97,6 +107,11 @@ src/distributed_backtester/
     metrics.py
     results.py
     cli.py
+    cli_options.py
+    cli_lifecycle.py
+    configuration.py
+    operational_logging.py
+    operational_status.py
     jobs.py
     provenance.py
     worker.py
@@ -117,6 +132,8 @@ src/distributed_backtester/
     ray_measurement.py
     storage_benchmark.py
     storage_measurement.py
+    profiling.py
+    performance.py
     backends/
         base.py
         sequential.py
@@ -131,6 +148,14 @@ tests/
     test_cli.py
 examples/
     sma.csv
+    backtest.toml
+    sweep.toml
+requirements/
+    container-build.lock
+    container-runtime.lock
+    container-dev.lock
+scripts/
+    smoke.py
 docs/
     architecture.md
     roadmap.md
@@ -139,6 +164,8 @@ docs/
     benchmarking.md
     clear explanation.md
     technical-explanation.md
+    development.md
+    operations.md
     phase-0-plan.md
     phase-0-report.md
     phase-1-plan.md
@@ -149,6 +176,12 @@ docs/
     phase-4-report.md
     phase-5-plan.md
     phase-5-report.md
+    phase-6-plan.md
+    phase-6-report.md
+    phase-7-design.md
+    phase-7-plan.md
+    phase-7-report.md
+    phase-7-verification.json
     storage.md
     ray-clusters.md
     benchmarks/phase-2/
@@ -164,6 +197,8 @@ docs/
         0005-ray-actor-execution.md
         0006-durable-scheduling.md
         0007-versioned-storage-and-analytics.md
+        0008-measured-performance.md
+        0009-operational-interface.md
 ```
 
 Execution has its own small module because fee rounding, affordability, timing,
@@ -175,8 +210,9 @@ and persistence modules. No empty subsystem packages are created in advance.
 
 ## Implemented and future contracts
 
-Phase 1 through Phase 3 names match the implementation. Later contracts remain
-proposals. The API may evolve with documented decisions at phase gates.
+Phase 1 through Phase 7 contracts match their implemented modules. The verified
+Phase 7 operational interfaces are described below. Future contracts require
+documented decisions and approval at phase gates.
 
 | Contract | Fields and rules |
 | --- | --- |
@@ -512,3 +548,126 @@ unbounded integer cross products, constructing final exact fractions once.
 The public strategy, worker, scheduler, storage and accounting contracts remain
 compatible. Read [performance](performance.md) and
 [ADR 0008](decisions/0008-measured-performance.md) for measured choices and limits.
+
+## Phase 7 implementation: operational boundaries
+
+**Phase 7 complete, version `0.8.0`.** This phase wraps existing
+execution with configuration, observation, read-only status, shutdown handling
+and installed packaging. It adds focused modules inside the same Python CLI
+package. The simulation still consumes validated immutable inputs and returns
+semantic results. No new runtime dependency, frontend or service is introduced.
+Phase 8 is unapproved and needs explicit approval.
+
+```mermaid
+flowchart LR
+    TOML[Flat TOML defaults] --> Config[Configuration validation]
+    Args[Explicit CLI options] --> CLI[Existing CLI]
+    Config --> CLI
+    Signals[Scoped signal handling] --> CLI
+    CLI --> Run[Existing backtest / experiment / durable coordinator]
+    Run -. observations .-> Logs[Scoped JSON logging]
+    Logs --> Stderr[stderr]
+    CLI --> Status[Validated read-only status]
+    Journal[Authoritative journal] --> Status
+    Classic[Complete classic exports] --> Status
+    Run --> Result[Result files / stdout JSON]
+    Status --> Result
+```
+
+These arrows are calls or data flow within existing processes. Status is a
+separate CLI invocation, and operational events describe execution without
+becoming semantic output or authoritative scheduler state.
+
+| Boundary | Owner and contract |
+| --- | --- |
+| Configuration | `configuration.load_configuration(path, command)` validates flat schema version 1 and command-specific TOML fields, resolving file paths against the config directory |
+| CLI defaults | `cli_options.configuration_defaults(argv)` prepares the existing parser; explicit values and negative boolean switches override defaults; the first explicit worker-resource flag replaces the configured array and subsequent flags append to the new CLI list |
+| Observations | `operational_logging` scopes its own logger/handler/context, defaults OFF, writes JSON to stderr and restores caller state |
+| Worker propagation | Process initializers and Ray actor construction receive serializable `LogState`, reconstructing local logging without inheriting handler/stream objects |
+| Saved status | `operational_status.read_status(output, job_id=...)` reuses validated read-only journal state or fully consumes a classic snapshot before publication/filtering |
+| CLI interruption | `cli_lifecycle.cli_signals()` translates the first SIGINT/SIGTERM into existing cleanup paths and restores caller signal handlers; a Ray-version-bound private adapter preserves startup ownership |
+| Installed environment | Docker builder/runtime/dev targets install the wheel, existing optional extras and pinned Linux dependency closures |
+
+TOML is flat and only `backtest`, `sweep`, and `resume` accept `--config`.
+`schema_version` and matching `command` are required; cash stays decimal text,
+sweep windows are integer arrays, and malformed/unknown/nonfinite values are
+rejected before application output creation. File defaults use file-relative
+paths; CLI paths use the current working directory. `--no-overwrite` and
+`--no-durable` can explicitly reverse configured true values. These are IO and
+validation boundaries around existing domain constructors.
+Resource parsing leaves configuration/parser defaults unchanged, including
+when a parser is reused; omitting resource flags retains the configured array.
+
+Logging defaults to OFF and carries schema/version, UTC timestamp, level, event,
+PID and applicable experiment/job/attempt/generation correlation. Ray retains
+actor-local session logs with `log_to_driver=False`; driver events describe
+collection and durable outcomes. Commit observations follow returned journal
+commit calls. Delivery is best effort, and logging failures must not replace
+the workload's result or primary exception. Logs confer no commit, liveness,
+timing or durability guarantee.
+Native Ray/Abseil failure traces can also appear on stderr. Only application
+records follow the JSON observation schema.
+
+Status validates the whole experiment before selecting a job. A present journal
+is authoritative, and invalid journal state never falls back to derived files.
+Classic reads validate every artifact and require complete publication; partial
+classic exports are explicit errors. Job selection narrows jobs/attempts and
+retains experiment events while counts stay aggregate. Retained classic worker
+metadata means last observed, not currently alive; durable status omits worker
+identities. Status takes no coordinator lock and starts no workers or recovery.
+Validated journal reads can maintain SQLite SHM or an empty WAL; authoritative
+database, lock, export and nonempty-WAL bytes remain covered by smoke checks.
+
+The interruption contract includes startup, with controlled
+SIGTERM/SIGINT exits 143/130 after normal unwind. The
+bridge preserves a `KeyboardInterrupt` subclass, signal-specific mapping after
+native translation to plain `KeyboardInterrupt`, and driver handler restoration
+around Ray initialization. Ray 2.59.0 has no public startup-registration opt-out;
+the version-bound adapter in `backends/ray.py` preserves the active main-thread
+CLI bridge through its private registration helper, delegates platform
+registration and restores the helper on exit. Library callers and other threads
+retain Ray's registration behavior. Review the adapter together with the Ray pin
+when upgrading.
+
+Actual native registration and post-CoreWorker-construction probes returned 143,
+restored caller handlers and left Ray disconnected. These are concrete startup
+checks, without exhaustive timing-interleaving or external-cluster coverage.
+The first signal during owned cleanup is deferred until cleanup finishes, and
+secondary failures are retained on the primary interruption. Cleanup closes
+owned resources and releases the journal writer lock, but has no guaranteed
+short bound; process pools may wait for running work. Docker can force SIGKILL
+after its stop timeout. Classic exports have no resume contract. Durable resume
+keeps single-coordinator exclusion, attempt fencing and saved retry budgets,
+requiring the same dataset/source/engine identity. Keep the entire output tree
+and use the same built image for restart. A version tag alone is insufficient.
+
+The Dockerfile uses matching stages from official
+`python:3.12.15-slim-bookworm` pinned to index digest
+`sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258`.
+Both runtime and default dev targets use the installed wheel in `/opt/venv`,
+UID/GID `10001:10001`, working directory `/outputs`, an exec entrypoint and
+SIGTERM stop signal. Dev additionally holds source/fixtures in `/workspace`
+for checks. The binary hash locks cover Linux amd64/arm64 on Python 3.12.15
+bookworm; macOS observed dependency snapshots are not universal locks. Published
+AMD64 base support and resolved wheel hashes do not establish AMD64 execution.
+
+Final native verification passed 1,928 tests in 231.48 seconds, including five
+operational native cases; Ruff passed with 147 files formatted, mypy checked 102
+source files and pip reported no broken requirements. The installed core helper
+passed. Actual Linux ARM64 runtime/dev builds used Python 3.12.15, glibc 2.36 and
+UID 10001. The final runtime helper passed Ray/storage/signals; the dev installed
+core helper and static/dependency checks passed. The
+[report](phase-7-report.md) and [verification record](phase-7-verification.json)
+retain the source/image identities and exact commands.
+
+Actual Docker stop/INT/KILL drills returned 143/130/137 with OOM false. All
+same-image resumes advanced generation 1 to 2 with unique committed results and
+validated exports. These observations retain the existing local journal and
+single-coordinator contract; they add no service or scheduling guarantee.
+Remote CI, Linux AMD64, the complete Linux dev-image test suite, Docker Desktop
+bind-filesystem durability, power-loss recovery and external-cluster behavior
+remain unobserved. This phase supplies no new performance or memory result, and
+the archived Phase 6 evidence remains unchanged. See the
+[operations design](phase-7-design.md), [implementation plan](phase-7-plan.md),
+[development](development.md), [operations](operations.md), and
+[technical contracts](technical-explanation.md#phase-7-operational-interfaces).

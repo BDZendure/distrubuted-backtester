@@ -4,7 +4,7 @@ A portfolio engineering project for reproducible strategy simulations, local CPU
 parallelism, and Ray execution. The focus is correct event
 timing, exact accounting, explicit failure behavior, and measured performance.
 
-**Current stage: Phase 6, performance engineering, verified locally.** Run a
+**Current stage: Phase 7 complete, operational reliability, version `0.8.0`.** Run a
 deterministic daily SMA backtest, or a parameter sweep through sequential, spawn
 process, or Ray backends.
 Stable jobs, bounded submissions, explicit failures, incremental result export,
@@ -12,7 +12,9 @@ and reproducible benchmark measurements extend the Phase 1 engine.
 Ray is optional. Durable Ray sweeps add journaled retries, deadlines, and resume.
 Optional Parquet inputs preserve exact prices. DuckDB imports verified experiment
 snapshots for analysis. CPU/allocation profiles and exact Python optimizations
-add measured performance evidence; Phase 7 requires explicit approval.
+add measured performance evidence. Phase 7 adds TOML defaults, JSON observations,
+validated status, installed container targets and smoke checks. Phase 8 requires
+explicit approval.
 
 ## Start with the explanations
 
@@ -28,6 +30,13 @@ add measured performance evidence; Phase 7 requires explicit approval.
   [benchmark methodology](docs/benchmarking.md), and [dependency plan](docs/dependencies.md).
 - [Storage and results commands](docs/storage.md), including version identifiers,
   the verified cache, and authoritative journal imports.
+- [Development and installed checks](docs/development.md),
+  [container operations](docs/operations.md), and the
+  [Phase 7 design](docs/phase-7-design.md).
+- [Phase 7 completion report](docs/phase-7-report.md): final native, installed-wheel
+  and Linux ARM64 container checks, startup/shutdown recovery and evidence limits.
+  [Machine-readable verification](docs/phase-7-verification.json) retains exact
+  source/image identities and command outcomes.
 - [Phase 6 performance instructions](docs/performance.md),
   [completion report](docs/phase-6-report.md), and
   [before/after measurements](docs/benchmarks/phase-6/results.md).
@@ -98,6 +107,38 @@ python -m json.tool artifacts/example.json
 `--output` to write JSON to stdout. Existing output is protected; add `--overwrite`
 to explicitly replace it. Invalid inputs exit with status 2 and an error on stderr.
 Run `distributed-backtester backtest --help` for available options.
+
+### Configuration and observations
+
+The bundled TOML file uses the adjacent synthetic CSV. Select an output yourself:
+
+```bash
+mkdir -p artifacts
+distributed-backtester backtest --config examples/backtest.toml \
+  --fee-bps 10 --output artifacts/configured-reference.json --log-level INFO \
+  2> artifacts/reference-operations.jsonl
+distributed-backtester sweep --config examples/sweep.toml \
+  --backend process --workers 2 --fee-bps 10 \
+  --output-dir artifacts/configured-process --log-level INFO \
+  > artifacts/process-summary.json 2> artifacts/process-operations.jsonl
+distributed-backtester status --output-dir artifacts/configured-process
+```
+
+Config paths are relative to the TOML file. Explicit CLI values replace file
+defaults, including the first explicit worker-resource list; repeated explicit
+resource options collect together. Explicit CLI paths retain current-directory
+semantics. Unknown fields, wrong types and invalid domains fail before execution.
+Successful result JSON remains on stdout or in the selected output file. Opt-in
+application logs go to stderr; default logging is OFF. The JSON schema applies
+to application records. Native Ray/Abseil failure traces can also appear on
+stderr, and argparse usage errors remain human-readable. Observations do not
+prove a result was committed.
+
+Status validates the journal when present, otherwise every completed classic
+artifact. `--job-id SHA256` selects one job while retaining experiment-wide
+counts. Retained worker IDs describe previous observations, without asserting
+current liveness. Partial classic exports require a new run; durable journals
+support same-identity resume. See the runbook for Docker mounts and recovery.
 
 The committed example is synthetic. With these settings, its SMA signal enters
 after January 6's close and buys **83 shares at January 7's $12 open**. The buy fee
@@ -268,24 +309,42 @@ python -m build
 Check the built wheel in a fresh environment:
 
 ```bash
-python -m venv .venv-wheel-phase6
-.venv-wheel-phase6/bin/python -m pip install --no-index --no-deps --force-reinstall \
-  dist/distributed_backtester-0.7.0-py3-none-any.whl
-wheel_python="$PWD/.venv-wheel-phase6/bin/python"
-wheel_cli="$PWD/.venv-wheel-phase6/bin/distributed-backtester"
+python -m venv .venv-wheel-phase7
+.venv-wheel-phase7/bin/python -m pip install --no-index --no-deps --force-reinstall \
+  dist/distributed_backtester-0.8.0-py3-none-any.whl
+wheel_python="$PWD/.venv-wheel-phase7/bin/python"
+wheel_cli="$PWD/.venv-wheel-phase7/bin/distributed-backtester"
 sample_data="$PWD/examples/sma.csv"
 (cd /tmp && "$wheel_python" -I -c "import distributed_backtester")
 (cd /tmp && "$wheel_cli" backtest --data "$sample_data" --symbol SYNTH \
   --price-basis raw --fee-bps 10)
 ```
 
-These shell commands target macOS/Linux. GitHub Actions is configured to run the
-checks on Linux with Python 3.12 and 3.14. The [Phase 2 report](docs/phase-2-report.md)
-records what was actually executed locally and what remains unobserved remotely.
+These shell commands target macOS/Linux. Final Phase 7 native verification passed
+1,928 tests in 231.48 seconds, including five operational native cases. Ruff
+checks passed with 147 files formatted, mypy checked 102 source files, and pip
+reported no broken requirements. The installed core helper returned `ok=true`.
+These are correctness and release checks, not performance measurements.
+
+Actual Linux ARM64 runtime/dev builds used Python 3.12.15, glibc 2.36 and the
+installed wheel as UID 10001. The final runtime helper passed Ray, storage and
+signal checks; the dev installed-core helper and static/dependency checks passed.
+Actual Ray startup probes returned 143, restored caller handlers and disconnected
+Ray. Docker stop/INT/KILL drills returned 143/130/137 without OOM; all resumed
+generation 1 to 2 with unique committed results and validated exports. The
+[Phase 7 report](docs/phase-7-report.md) records source/image identities and
+reproduction details.
+
+GitHub Actions is configured for Linux Python 3.12 and 3.14. Remote CI, Linux
+AMD64 execution, the complete Linux dev-image test suite, Docker Desktop
+bind-filesystem durability, power-loss recovery and external-cluster behavior
+remain unobserved. Phase 7 adds no performance or
+memory result; historical Phase 6 evidence retains its archived source identities.
 
 ## Scope and limitations
 
-Later phases add operational tooling and final portfolio documentation.
+Phase 7 operational tooling is complete. Phase 8 portfolio documentation remains
+unapproved and requires explicit approval.
 Local measurements describe this host and
 workloads; they do not establish cross-machine scaling or production readiness.
 

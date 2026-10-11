@@ -18,7 +18,10 @@ Its [report](phase-5-report.md), [storage measurements](benchmarks/phase-5/resul
 and [completed plan](phase-5-plan.md) record the evidence. Phase 6 was explicitly approved and its measured Python
 optimizations, profiling and verified comparison are recorded in the
 [Phase 6 report](phase-6-report.md), [results](benchmarks/phase-6/results.md) and
-[completed plan](phase-6-plan.md). Phase 7 remains unapproved.
+[completed plan](phase-6-plan.md). Phase 7 was explicitly approved and its
+[operational plan](phase-7-plan.md), [completion report](phase-7-report.md) and
+[verification record](phase-7-verification.json) document its completed local
+validation. Remote CI is configured but unobserved. Phase 8 remains unapproved.
 
 ## Phase 0: Architecture and repository setup
 
