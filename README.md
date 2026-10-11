@@ -4,11 +4,12 @@ A portfolio engineering project for reproducible strategy simulations, local CPU
 parallelism, and Ray execution. The focus is correct event
 timing, exact accounting, explicit failure behavior, and measured performance.
 
-**Current stage: Phase 3, distributed execution.** Run a deterministic daily
+**Current stage: Phase 4, fault tolerance and scheduling.** Run a deterministic daily
 SMA backtest, or a parameter sweep through sequential, spawn process, or Ray backends.
 Stable jobs, bounded submissions, explicit failures, incremental result export,
 and reproducible benchmark measurements extend the Phase 1 engine.
-Ray is optional. Phase 4 requires explicit approval.
+Ray is optional. Durable Ray sweeps add journaled retries, deadlines, and resume.
+Phase 5 requires explicit approval.
 
 ## Start with the explanations
 
@@ -102,8 +103,8 @@ must satisfy `1 <= fast < slow`; an invalid pair rejects the entire grid. Repeat
 pairs execute once, with the requested grid membership preserved in the manifest.
 The committed CSV is ready to use; a dashboard is not required.
 
-Each run requires a **new output directory**. No experiment overwrite or resume
-is implemented. Choose a new name for another run.
+Each run requires a **new output directory**. Classic sweeps cannot resume. The durable mode below supports recovery from an
+existing journal. Choose a new name for another classic run.
 
 | File | Contents |
 | --- | --- |
@@ -123,6 +124,31 @@ initialization, then sends small job specs. It retains at most `--max-in-flight`
 unconsumed futures, defaulting to twice the workers. Each worker has its own data
 copy. Detailed results are exported as they finish; job specs and compact outcome
 records still grow with the job count.
+
+## Recoverable Ray experiments
+
+On macOS/Linux, start a sweep with a local SQLite journal:
+
+```bash
+distributed-backtester sweep --data examples/sma.csv --symbol SYNTH \
+  --price-basis raw --fast 1 2 --slow 3 4 --fee-bps 10 \
+  --backend ray --workers 2 --durable --max-attempts 3 \
+  --job-timeout 60 --retry-delay 0.1 --output-dir artifacts/durable-demo
+
+distributed-backtester status --output-dir artifacts/durable-demo
+distributed-backtester resume --data examples/sma.csv --workers 2 \
+  --output-dir artifacts/durable-demo
+```
+
+The policy includes the first attempt. Resume requires identical CSV bytes and
+installed source; completed jobs are not rerun. Worker settings may change.
+One coordinator holds an exclusive lock. SQLite commits complete results and
+terminal state together; resume repairs JSON exports from that journal. Calculations
+can repeat, but each job has at most one committed terminal record per journal.
+This is process crash recovery, not coordinator high availability or disk-loss
+recovery. See [reliability and recovery](docs/reliability.md),
+[the scheduling ADR](docs/decisions/0006-durable-scheduling.md), and
+[Phase 4 evidence](docs/phase-4-report.md).
 
 ## Reproduce the benchmarks
 
@@ -217,11 +243,11 @@ python -m build
 Check the built wheel in a fresh environment:
 
 ```bash
-python -m venv .venv-wheel-phase3
-.venv-wheel-phase3/bin/python -m pip install --no-index --no-deps --force-reinstall \
-  dist/distributed_backtester-0.4.0-py3-none-any.whl
-wheel_python="$PWD/.venv-wheel-phase3/bin/python"
-wheel_cli="$PWD/.venv-wheel-phase3/bin/distributed-backtester"
+python -m venv .venv-wheel-phase4
+.venv-wheel-phase4/bin/python -m pip install --no-index --no-deps --force-reinstall \
+  dist/distributed_backtester-0.5.0-py3-none-any.whl
+wheel_python="$PWD/.venv-wheel-phase4/bin/python"
+wheel_cli="$PWD/.venv-wheel-phase4/bin/distributed-backtester"
 sample_data="$PWD/examples/sma.csv"
 (cd /tmp && "$wheel_python" -I -c "import distributed_backtester")
 (cd /tmp && "$wheel_cli" backtest --data "$sample_data" --symbol SYNTH \

@@ -6,7 +6,7 @@ The Phase 1 engine implements a deterministic daily backtester for one asset,
 USD, whole shares, and long-only targets. Phase 2 adds immutable jobs, parameter
 sweeps, sequential and local process backends, incremental detailed export, a
 compact result index, and a benchmark runner. Phase 3 adds optional Ray actors.
-Release `0.4.0` retains strict CSV
+Release `0.5.0` retains strict CSV
 loading, the SMA strategy, next-open execution, exact accounting, return and
 drawdown metrics, and versioned JSON export. Runtime dependencies in
 `pyproject.toml` are empty. CSV parsing, integer arithmetic, `Fraction`, command
@@ -23,8 +23,8 @@ quote a provisional test count. See the
 [beginner guide](clear%20explanation.md) for setup and plain-language definitions.
 
 Ray execution is implemented in Phase 3, with identical engine and job contracts.
-Durable scheduling, retries, and databases remain later work. Phase 3 has no
-recovery protocol or multiple-machine performance claim.
+Phase 4 adds a local durable scheduler around Ray. Classic Phase 3 execution
+still has no recovery protocol or multiple-machine performance claim.
 
 ## Actual module boundaries
 
@@ -341,7 +341,7 @@ slow 3, initial cash 1000, and fee 0 bps. Positive windows require fast < slow;
 cash must be positive exact micro-USD; fees are integers from 0 to 10000.
 `--output` selects a JSON file, otherwise JSON goes to stdout.
 `--overwrite` permits replacing that file. `backtest --help` explains options;
-top-level `--version` reports the installed release, `0.4.0` for this version. The
+top-level `--version` reports the installed release, `0.5.0` for this version. The
 [beginner guide's option table](clear%20explanation.md#run-the-included-example)
 explains each argument.
 
@@ -393,8 +393,8 @@ a complete temporary sibling in the destination directory. It flushes and
   it does not turn an already published result into CLI exit status 2. Before
   publication, the original write/publication error remains the failure reason.
 
-These operations avoid exposing partially written JSON at the destination.
-They do not establish a durable job commit protocol. There is no directory
+These classic operations avoid exposing partially written JSON at the destination.
+They do not establish the Phase 4 durable job commit protocol described below. There is no directory
 `fsync`, transactional lifecycle, crash recovery, distributed idempotency, or
 network-filesystem guarantee. A crash can leave a temporary file and does not
 have a promised recovery procedure. Hard-link publication requires filesystem
@@ -402,8 +402,8 @@ support; this implementation does not claim universal filesystem behavior.
 
 ## Release identity and reproducibility limits
 
-For an installation of release `0.4.0`, the engine ID is
-`distributed-backtester/0.4.0:daily-long-only-v1`. The release component comes
+For an installation of release `0.5.0`, the engine ID is
+`distributed-backtester/0.5.0:daily-long-only-v1`. The release component comes
 from installed package metadata; the suffix identifies the declared simulation
 semantics. It is not a source-code hash. Editing code in an editable installation
 can leave the release and engine ID unchanged, so that ID alone does not identify
@@ -497,7 +497,7 @@ outcome and backend shutdown completes, it writes the execution record and
 publishes `index.json` last. A complete index may include ordinary job failures.
 A broken pool, initializer failure, protocol violation such as missing/duplicate
 outcomes, or export failure aborts the experiment without an index. Existing
-partial artifacts are not resumed. Retries and durable recovery belong to Phase 4.
+partial artifacts are not resumed. The opt-in Phase 4 mode below provides retries and durable recovery.
 
 Streaming export bounds retained detailed outcomes by backend buffering; it does
 not make total memory constant. Job specifications, membership, and compact index
@@ -696,25 +696,53 @@ than once and miss brief peaks; declare those limitations. The
 The five-bar example and test duration do not establish throughput or speedup.
 The current owned-local harness does not implement remote sampling or clock alignment.
 
-## Planned recovery and storage guarantees
+## Planned analytical storage
 
-**Phase 4, not implemented:** Lost acknowledgments may cause a calculation to
-repeat. Planned scheduling permits at-least-once computation, with at most one
-durable successful result per stable job ID inside one authoritative coordinator
-and store. This is not an exactly-once execution claim.
-
-A single coordinator will own lifecycle/commit decisions, with transactions,
-unique commits, bounded retries, attempt identifiers, leases/fencing, and explicit
-terminal failures. A single-writer SQLite journal is a candidate to review in
-Phase 4. Workers submit outcomes to the coordinator. Identical duplicates can be
-accepted safely; divergent content for one ID is a correctness error. Expired
-attempts and still-running work require defined timeout handling.
-
-The planned initial guarantee excludes coordinator high availability,
-network-filesystem assumptions, and recovery after disk loss. Real failure
-injection and persistent-transaction evidence must precede recovery claims.
+Phase 4 scheduling and its limits are described below.
 **Phase 5, not implemented:** DuckDB provides analysis over committed outcomes;
 it does not supply the scheduler's commit protocol by itself.
 
 See [architecture](architecture.md), [roadmap](roadmap.md), and
 [testing strategy](testing.md) for the future contracts and phase checkpoints.
+
+
+## Phase 4: durable scheduling
+
+The asynchronous `AttemptRuntime` boundary exposes start, submit, bounded poll,
+cancel, and close. A shared actor pool retains the Phase 3 resource and ownership
+rules. Durable mode limits active attempts to the lesser of workers and requested
+in-flight capacity, with one active call per actor. A failed or timed-out actor is
+retired. Its replacement is created on demand and must finish within the new
+attempt's deadline. Ray task retries and actor restarts remain zero.
+
+The scheduler's `RetryPolicy`, `AttemptSpec`, and `AttemptReply` are immutable
+validated contracts. The coordinator owns monotonic deadlines and retry decisions.
+`Journal` owns transactional state and canonical terminal artifact bytes. Shared
+`experiment_artifacts.py` produces the same successful manifest, details, and index
+as classic collection. Operational attempts, clocks, and generations stay outside
+semantic identity.
+
+SQLite WAL with synchronous FULL is the authoritative persistence boundary. A
+terminal transition and full result content commit in one transaction. The job ID
+is a primary key in committed results. There is no independent file/metadata commit
+gap: JSON is rebuilt from the journal afterward. File publication fsyncs each file
+and parent directory, with the index last. A failure before publication completes
+can leave committed calculations that need export repair rather than recomputation.
+
+The writer holds a POSIX flock for the full session. Resume first verifies schema,
+manifest, dataset metadata, source fingerprint, and committed digests. It then
+advances the generation and reconciles abandoned running attempts against the
+persisted retry budget. Status uses a separate read-only snapshot. The generation,
+attempt number, and job ID fence stale leases. Identical duplicate commits receive
+an acknowledgment; conflicting content for the same completed attempt is rejected.
+
+This is bounded retry orchestration with at-least-once computation as the intended
+model and at most one committed terminal outcome within one journal. A finite
+budget can be exhausted before an attempt starts. The journal is not replicated,
+and flock does not make coordinators highly available across machines. Local
+process-kill evidence does not establish arbitrary power-loss, network-partition,
+or disk-loss recovery. Full artifact duplication and one transactional writer are
+explicit storage and throughput tradeoffs, with no new performance claim.
+
+See [reliability](reliability.md), [ADR 0006](decisions/0006-durable-scheduling.md),
+and the [Phase 4 report](phase-4-report.md) for commands and actual verification.

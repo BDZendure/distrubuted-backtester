@@ -8,7 +8,8 @@ exact execution/accounting, a deterministic simulation, metrics, JSON export,
 and a CLI. Phase 2 adds stable jobs, parameter sweeps, sequential and process
 backends, initialized workers, incremental export, and a benchmark harness.
 Phase 3 adds the optional Ray actor pool and an existing-cluster connection.
-Scheduling and analytical storage remain future designs. See the
+Phase 4 adds a local SQLite scheduler, retry policy, and Ray recovery. Analytical
+storage remains future work. See the
 [Phase 2 report](phase-2-report.md) and [Ray instructions](ray-clusters.md).
 
 The engineering goal is reproducible independent simulations, reliable execution,
@@ -41,15 +42,15 @@ flowchart LR
     SE --> AC[Order execution and accounting]
     SE --> ME[Metrics]
     WR --> RS[Results output / future store]
-    JS[Future durable scheduler] --> EB
+    JS[Durable coordinator and journal] --> EB
     JS --> RS
     BM[Benchmark harness] -. measures .-> EB
 ```
 
 Arrows show data flow or calls, not independent services. In Phase 1, the CLI
 loads the data and calls the simulation directly. In Phase 2, sweeps use the
-experiment manager, backend, and worker runtime. A durable scheduler enters in
-Phase 4.
+experiment manager, backend, and worker runtime. Phase 4 durable sweeps add a
+coordinator journal around the Ray attempt runtime.
 
 | Component | Responsibility | Inputs and outputs | First needed |
 | --- | --- | --- | --- |
@@ -95,6 +96,13 @@ src/distributed_backtester/
     provenance.py
     worker.py
     experiments.py
+    experiment_artifacts.py
+    scheduler/
+        models.py
+        journal.py
+        coordinator.py
+        ray_runtime.py
+        experiments.py
     workloads.py
     benchmark.py
     measurement.py
@@ -346,8 +354,8 @@ Malformed data and invalid configurations fail before simulation. An invalid
 execution intent has an explicit recorded rejection. Unexpected invariant
 violations raise an error and fail the job. Do not convert a crashed simulation
 into a successful empty result. CLI failure exits nonzero and must not publish
-a success artifact. Phase 2 isolates ordinary job exceptions; recovery from an
-entire broken process pool is assigned to Phase 4.
+a success artifact. Phase 2 isolates ordinary job exceptions; classic process-pool failures still abort. Phase 4 durable recovery initially
+supports the Ray attempt runtime.
 
 ## Concurrency and distributed evolution
 
@@ -363,7 +371,8 @@ A fresh output directory contains `manifest.json`, `results/<job_id>.json`,
 collection and backend shutdown. Ordinary job failures get artifacts; unknown,
 duplicate, missing, or mismatched outcomes, broken pools, and export errors abort
 without a finalized index. Partial files may remain. No automatic cleanup,
-retry, resume, or Phase 4 durable recovery guarantee is implemented.
+retry, or resume is implemented on this classic path. Phase 4 durable Ray mode
+adds a separate journal and recovery coordinator.
 There is still one in-memory dataset copy per process; measure it before
 adding shared memory or memory-mapped storage.
 
@@ -421,3 +430,26 @@ See [testing](testing.md), [benchmarking](benchmarking.md),
 
 Implementation phases require their own reviewed plans. These future contracts
 can change with documented reasoning and approval at the corresponding checkpoint.
+
+
+## Phase 4 implementation: durable coordinator
+
+Durable sweeps are an additional execution path; classic streaming backend APIs
+remain available. `scheduler/models.py` defines immutable policy, lease, and reply
+contracts. `journal.py` owns the local SQLite state, advisory writer lock, unique
+commits, and restart reconciliation. `coordinator.py` owns deadlines and retry
+scheduling. `ray_runtime.py` uses the shared Ray pool lifecycle and retires failed
+actors. `scheduler/experiments.py` validates inputs for start and resume.
+
+The journal stores complete canonical terminal artifacts alongside job state in
+one transaction. Successful exports use the same shared serializer as classic
+collection. JSON files are derived, repairable copies. Job attempt IDs and session
+generations fence expired or interrupted replies. Only one coordinator writes;
+workers never access the journal. Read-only status remains available during work.
+
+This phase supports local POSIX journals and Ray workers. It does not implement a
+new durable process backend, journal replication, or multiple-coordinator failover.
+The retry budget includes the first attempt and remains fixed on resume. Source
+and dataset identity must match before journal state is changed. Resource settings
+may change. See [ADR 0006](decisions/0006-durable-scheduling.md),
+[reliability](reliability.md), and [Phase 4 report](phase-4-report.md).

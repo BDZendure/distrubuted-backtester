@@ -8,7 +8,7 @@ The Phase 1 engine implements that replay for one asset, one daily price table,
 and one set of settings at a time. Phase 2 adds parameter sweeps that run many
 independent simulations sequentially or with local worker processes. Phase 3 adds
 Ray workers and connections to an existing cluster. The current package release
-is `0.4.0`.
+is `0.5.0`.
 
 You can run the command below and get a JSON result containing the settings,
 data fingerprint, trades, order outcomes, daily portfolio values, and summary
@@ -17,8 +17,7 @@ metrics. It uses whole shares and USD, and can hold shares or cash. This is
 
 All three backends can run on one machine. Ray can attach to a cluster, provided
 every machine has matching installed code. Actual performance across physical
-machines has not been established. Automatic recovery and databases remain
-future work. The core uses Python's standard library; Ray and memory sampling
+machines has not been established. Phase 4 adds optional recovery using a local SQLite journal. The core uses Python's standard library; Ray and memory sampling
 are optional dependencies.
 
 ## Python and the tools in simple terms
@@ -182,7 +181,8 @@ After a command, `echo $?` shows its exit code in this shell. Ordinary job
 exceptions become failure records so other jobs can finish. A broken worker
 pool, invalid backend output, or export failure aborts collection. Partial files
 may remain, but no final `index.json` is published for an incomplete sweep.
-Phase 2 has no automatic retries or recovery; those are planned for Phase 4.
+Classic sweeps have no automatic retries or recovery. Use the durable Ray mode
+for the Phase 4 recovery features.
 
 ## What the trading rule means
 
@@ -439,8 +439,8 @@ package requirements are in [Ray cluster instructions](ray-clusters.md).
 
 If a strategy raises an ordinary error, that job gets an explicit failed answer.
 If a Ray worker or infrastructure fails, the experiment can stop with partial
-files and no final index. There are no automatic retries or resume yet. That is
-the next phase and requires your approval.
+files and no final index in classic mode. The Phase 4 durable mode below adds
+bounded retries and resume.
 
 ### What our measurements showed
 
@@ -461,15 +461,13 @@ for the evidence and limitations.
 
 | Phase | Planned capability |
 | --- | --- |
-| 4 | A single coordinator's durable job tracking, bounded retries, and at most one committed success per job ID, even if calculation repeats |
 | 5 | Parquet data and DuckDB analysis, comparing economic results while checking each format's provenance separately |
 | 6 | Profiling and optimizations supported by measured results |
 | 7 | Operational tooling and a reproducible developer environment |
 | 8 | Final documentation and portfolio evidence based on implemented facts |
 
-Those later features are not part of the implemented Phase 3 scope. Planned
-Phase 4 recovery does not promise coordinator high availability or recovery after
-disk loss. Several workers may be slower for small jobs, so scaling claims need
+Those later features are not part of the implemented Phase 4 scope. Phase 4
+recovery does not promise coordinator high availability or recovery after disk loss. Several workers may be slower for small jobs, so scaling claims need
 actual measurements.
 
 Read the [technical explanation](technical-explanation.md) for the exact module
@@ -477,3 +475,47 @@ interfaces and guarantees, the [Phase 1 plan](phase-1-plan.md) for the accepted
 engine scope, the [Phase 2 plan](phase-2-plan.md) for the local sweep design,
 [architecture](architecture.md) for module relationships, and the
 [roadmap](roadmap.md) for later phase checkpoints.
+
+
+## Phase 4: recovering work when a process stops
+
+Imagine running 1,000 simulations. If the program stops after 700 finish, you want
+to keep those 700 results. A **journal** is a saved record of completed work and
+unfinished work. This project uses SQLite, a database stored in files on your
+computer, to hold that record.
+
+| Word | Simple meaning |
+| --- | --- |
+| Job | One simulation with one set of settings |
+| Attempt | One try at running that job |
+| Retry | Another try after an attempt fails |
+| Timeout | A time limit for receiving an attempt's result |
+| Commit | Saving a complete result and marking its job finished together |
+| Idempotent commit | Receiving the same result again does not save another copy |
+| Lease | Permission for one particular attempt to finish a job |
+| Generation | The coordinator session number, used to reject old permissions |
+
+The coordinator saves an attempt before sending it to Ray. The worker calculates
+its result; only the coordinator saves the authoritative result. If a worker dies,
+the coordinator can retry. If the coordinator dies, `resume` reads the saved journal.
+An interrupted attempt still uses one try from the retry budget.
+
+The default limit is **three attempts total**, including the first try. That means
+up to two retries. A job that keeps failing becomes a clearly reported failed job.
+A worker may finish and lose its reply; the program might calculate it again.
+This is why we promise one saved terminal result per job, not one calculation.
+
+JSON result files are copies for you to inspect. The journal is the master record.
+Resume can recreate those copies even when every job is already finished, without
+starting Ray again. Keep your input CSV outside the experiment output directory.
+Do not edit or delete SQLite working files while an experiment is running.
+
+Use Terminal or VS Code's terminal. Install the optional Ray extra, then copy the
+[durable command examples](reliability.md#commands). `status` shows job counts and
+attempt history. `resume` needs the original CSV bytes and unchanged project source.
+The retry limit stays the same. You can change how many workers resume uses.
+
+This handles process failures with a journal on the local machine. Losing the disk
+also loses that journal. It does not automatically run a second coordinator server.
+The [technical explanation](technical-explanation.md#phase-4-durable-scheduling)
+explains the transactions and stale-result checks.

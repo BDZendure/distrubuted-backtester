@@ -116,3 +116,20 @@ all-success semantic artifacts, repeated order, failure preservation, optional
 imports, and explicit post-verification deletion. Real cold smoke commands prove
 the full subprocess path separately. Preserve negative controls; do not reduce
 assertions to the backend's self-reported counters.
+
+
+## Phase 4 verification boundaries
+
+The journal tests use real SQLite subprocess termination during claims and full
+terminal transactions, plus a kill after commit before acknowledgment. Coordinator
+unit tests use an explicitly fake transport/clock around that real journal for
+reproducible deadlines and retry behavior. Ray transport unit tests validate the
+actual runtime against a labeled in-memory transport, including wrapped exceptions
+and readiness ordering. They do not establish actual worker-crash recovery.
+
+`tests/test_scheduler_faults.py` contains six actual Ray cases: death before dispatch,
+death during real simulation steps, lost reply after calculation, live timeout,
+repeated structured failure, and abrupt coordinator restart. Run after freezing
+package source. These cases need local sockets and process control and remain
+unexecuted pending explicit authorization required by automatic approval review.
+See [the verification report](phase-4-report.md) for observed commands and outcomes.

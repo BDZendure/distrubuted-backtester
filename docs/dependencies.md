@@ -1,6 +1,6 @@
 # Dependency plan
 
-## Current Phase 3 environment
+## Current Phase 4 environment
 
 Runtime dependencies are empty. Development/build tools are declared and pinned
 in `pyproject.toml`; installation uses a repository-local virtual environment.
@@ -56,7 +56,7 @@ outcomes before handing them to the collector.
 | 1 (implemented) | Standard-library `csv`, exact integer text parsing, `fractions`, `argparse`, `json`, `hashlib`, filesystem publication | No runtime dependency added; exact accounting needs no dataframe framework |
 | 2 (implemented) | Standard-library `concurrent.futures`, `multiprocessing`; optional psutil 7.2.2 | Local CPU execution and whole-process memory measurement |
 | 3 (implemented) | Optional Ray 2.59.0 | Remote actor scheduling and data placement |
-| 4 | Standard-library SQLite candidate | Atomic lifecycle/result commits for a single coordinator |
+| 4 (implemented) | Standard-library SQLite and POSIX advisory locking | Atomic lifecycle/result commits for a single coordinator |
 | 5 | PyArrow and DuckDB; pandas for concrete tabular/reporting use if needed | Columnar storage and analytical queries |
 | 6 | Profilers as justified; NumPy or compiled tools only for measured bottlenecks | Optimize based on evidence |
 | 7 | Docker tooling and operational additions justified by the implementation | Reproducible developer/runtime environment |
@@ -82,3 +82,7 @@ extras on a sequential execution path that does not use them.
 CI uses verified full commit revisions for the v6 checkout/setup-python actions,
 read-only repository permissions, and no persisted checkout credentials. Updates
 to pinned tool or action revisions should be reviewed and checked together.
+
+Phase 4 introduces no third-party dependency. SQLite supplies local journal
+transactions; durable scheduling uses POSIX flock and rejects unsupported writer
+platforms explicitly. Classic simulation remains independent of those facilities.

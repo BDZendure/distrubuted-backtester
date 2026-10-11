@@ -10,8 +10,10 @@ its [report](phase-1-report.md) records validation. Phase 2 was explicitly appro
 The [Phase 2 report](phase-2-report.md) records its verification and measurements.
 Phase 3 was explicitly approved and is verified locally; its
 [report](phase-3-report.md) and [comparisons](benchmarks/phase-3/results.md) record
-the evidence and unavailable memory coverage. Phase 4 requires new
-explicit approval.
+the evidence and unavailable memory coverage. Phase 4 was explicitly approved
+and its implementation is ready on the fault-tolerance feature branch. Real Ray
+failure verification is pending automatic-review-required user authorization;
+Phase 4 acceptance is incomplete. Phase 5 requires new explicit approval.
 
 ## Phase 0: Architecture and repository setup
 
@@ -116,8 +118,8 @@ coverage. Stop before Phase 4.
 **Deliverables:** Durable lifecycle, attempt identifiers, leases/fencing, timeout
 semantics, bounded retries, worker failure observations, interrupted-experiment
 recovery, transactional idempotent commits, duplicate/divergence protection,
-experiment status, and structured terminal failures. Review SQLite as the initial
-single-writer journal; do not assume analytical storage solves scheduling durability.
+experiment status, and structured terminal failures. SQLite is the selected local
+single-writer journal; analytical storage does not replace scheduling durability.
 
 **Acceptance:** No silent corruption or duplicate successful commits. Retry
 behavior is deterministic and bounded. Timeout handling addresses live expired
