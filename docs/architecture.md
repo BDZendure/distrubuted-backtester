@@ -5,8 +5,10 @@
 This document describes the system through Phase 8. Phase 0 established the
 foundation; the approved Phase 1 implements strict CSV loading, SMA signals,
 exact execution/accounting, a deterministic simulation, metrics, JSON export,
-and a CLI. Experiments, execution backends, workers, scheduling, and analytical
-storage remain future designs. See the [Phase 1 report](phase-1-report.md).
+and a CLI. Phase 2 adds stable jobs, parameter sweeps, sequential and process
+backends, initialized workers, incremental export, and a benchmark harness.
+Scheduling and analytical storage remain future designs. See the
+[Phase 2 report](phase-2-report.md).
 
 The engineering goal is reproducible independent simulations, reliable execution,
 and honest measurements. Strategy profitability is outside the acceptance criteria.
@@ -44,8 +46,9 @@ flowchart LR
 ```
 
 Arrows show data flow or calls, not independent services. In Phase 1, the CLI
-loads the data and calls the simulation directly. Experiment management, backend
-classes, workers, and scheduling enter only when later phases need them.
+loads the data and calls the simulation directly. In Phase 2, sweeps use the
+experiment manager, backend, and worker runtime. A durable scheduler enters in
+Phase 4.
 
 | Component | Responsibility | Inputs and outputs | First needed |
 | --- | --- | --- | --- |
@@ -87,6 +90,17 @@ src/distributed_backtester/
     metrics.py
     results.py
     cli.py
+    jobs.py
+    provenance.py
+    worker.py
+    experiments.py
+    workloads.py
+    benchmark.py
+    measurement.py
+    backends/
+        base.py
+        sequential.py
+        process.py
     py.typed
 tests/
     test_packaging.py
@@ -108,6 +122,12 @@ docs/
     phase-0-report.md
     phase-1-plan.md
     phase-1-report.md
+    phase-2-plan.md
+    phase-2-report.md
+    benchmarks/phase-2/
+        results.md
+        small.json
+        substantial.json
     decisions/
         README.md
         0001-modular-package.md
@@ -118,13 +138,14 @@ docs/
 Execution has its own small module because fee rounding, affordability, timing,
 and order rejection have independent reference tests. `simulation.py` owns event
 ordering; `results.py` owns serialization and complete-file publication.
-Phase 2 adds `experiments.py`, `jobs.py`, and `backends/`. Phase 4 adds scheduler
+Phase 2 adds focused experiment, job, worker, provenance, backend, and benchmark
+modules. Phase 4 adds scheduler
 and persistence modules. No empty subsystem packages are created in advance.
 
 ## Implemented and future contracts
 
-Phase 1 names match the implementation. Contracts explicitly labeled Phase 2
-remain proposals. The API may evolve with documented decisions at phase gates.
+Phase 1 and Phase 2 names match the implementation. Later contracts remain
+proposals. The API may evolve with documented decisions at phase gates.
 
 | Contract | Fields and rules |
 | --- | --- |
@@ -142,8 +163,8 @@ remain proposals. The API may evolve with documented decisions at phase gates.
 | `BacktestResult` | Schema version, engine/strategy identity, data/config provenance, fills, order outcomes, equity path, final holdings/cash, metrics |
 | `JobSpec` (Phase 2) | Stable ID, dataset reference/digest, full config, engine identity; JSON-serializable and immutable |
 | `JobOutcome` (Phase 2) | Job ID and either result or structured failure; execution metadata kept outside the semantic result |
-| `OutcomeRecord` (Phase 2) | Compact job ID/status, relative result artifact reference, content digest, and summary metrics |
-| `ExperimentResult` (Phase 2) | Manifest reference and job-ID-sorted index of outcome records; full equity paths remain in per-job artifacts |
+| Compact outcome JSON (Phase 2) | Compact job ID/status, relative result artifact reference, content digest, and summary metrics |
+| `ExperimentSummary` (Phase 2) | Counts and paths; on disk, manifest and job-ID-sorted compact index; full equity paths remain in per-job artifacts |
 
 Implemented signatures:
 
@@ -166,8 +187,10 @@ configuration. Arbitrary custom hooks support causal/reference tests; their resu
 cannot be exported as semantic JSON until their parameters and versioned identity
 have a supported provenance contract. Phase 1 export supports the built-in SMA.
 
-Future Phase 2 backend contract:
-`ExecutionBackend.iter_outcomes(jobs: Sequence[JobSpec]) -> Iterator[JobOutcome]`.
+Implemented Phase 2 backend contract:
+`ExecutionBackend.iter_outcomes(jobs: Sequence[JobSpec], dataset: MarketDataset, implementation: ImplementationIdentity) -> Iterator[JobOutcome]`.
+The dataset and installed identity initialize the backend once per run. Workers
+receive only small job specs after initialization.
 
 ## Daily execution and strategy semantics
 
@@ -274,8 +297,13 @@ parsed; hashing a file again after loading could identify different content.
 Phase 1 records installed package release plus daily engine semantics in
 `engine_id`, and an SMA semantics identifier. A release label is not a cryptographic
 source identity: editable changes can retain the version. Record the exact Git
-revision and environment for reproduction; Phase 2 must add immutable revision
-identity to its experiment manifests before relying on content-derived job IDs.
+revision and environment for reproduction. Phase 2 adds an installed-source
+fingerprint to job and manifest identity. Sorted package-relative Python filenames
+and source bytes are length-framed and hashed, independently of installation path.
+Git revision/status and installed dependency versions are operational context in
+`execution.json` and benchmark reports. A wheel can be hashed without a Git checkout.
+Changing an auxiliary Python module conservatively changes every job ID; source
+must stay fixed during a run. This hash is provenance, not a hostile-code sandbox.
 
 JSON publication writes and flushes/fsyncs a temporary sibling before publishing.
 Without overwrite, a hard link fails if the destination already exists; explicit
@@ -288,11 +316,11 @@ turn the completed export into an error. Rejected fields with malformed types
 use null in JSON diagnostics, retaining the rejection reason.
 
 Phase 2 hashes canonical serialized configuration, dataset byte digest and policy,
-strategy/engine identity, and schema version to form job IDs. Paths and attempt
+strategy/engine identity, installed-source fingerprint, and schema version to form job IDs. Paths and attempt
 IDs are not job identity. Different byte encodings of otherwise equal CSVs may
 receive different IDs; conservative identity is acceptable initially. Duplicate
 grid configurations collapse to one job with the manifest recording the mapping.
-Backend delivery follows completion order. The experiment manager exports each
+Process backend delivery follows completion order. The experiment manager exports each
 outcome to a per-job artifact and releases its full result before collecting more.
 It returns a compact job-ID-sorted index, so final output is deterministic without
 retaining every equity path or waiting for an early slow job to finish first.
@@ -315,14 +343,19 @@ entire broken process pool is assigned to Phase 4.
 
 ## Concurrency and distributed evolution
 
-Phase 2 starts with a sequential reference backend and `ProcessPoolExecutor`
+Phase 2 implements a sequential reference backend and `ProcessPoolExecutor`
 using explicit spawn semantics. Each process initializes a dataset once for a
 common-data sweep; jobs carry references/configuration instead of whole datasets.
 Use bounded submissions and incremental result export to control outstanding
 futures and detailed result copies. The results sink belongs to the experiment
 manager; backends yield outcomes without owning persistence. Export completion
 defines successful collection for the experiment, and export errors must fail it.
-Phase 2 exports do not yet provide Phase 4's durable recovery guarantee.
+A fresh output directory contains `manifest.json`, `results/<job_id>.json`,
+`execution.json`, and `index.json`. The index is published last, after complete
+collection and backend shutdown. Ordinary job failures get artifacts; unknown,
+duplicate, missing, or mismatched outcomes, broken pools, and export errors abort
+without a finalized index. Partial files may remain. No automatic cleanup,
+retry, resume, or Phase 4 durable recovery guarantee is implemented.
 There is still one in-memory dataset copy per process; measure it before
 adding shared memory or memory-mapped storage.
 

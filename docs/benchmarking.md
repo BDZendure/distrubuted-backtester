@@ -1,7 +1,10 @@
 # Benchmark methodology
 
-Phase 0 defines the method. There is no simulation workload, harness, or measured
-throughput yet. The first execution comparison belongs to Phase 2.
+Phase 2 implements the local harness and publishes
+[recorded results and raw observations](benchmarks/phase-2/results.md). Later Ray
+metrics and optimization procedures below remain planned requirements.
+Run the harness with `python -m distributed_backtester.benchmark run --help`.
+Optional psutil 7.2.2 is required only for measurement.
 
 ## Workload definition
 
@@ -27,7 +30,13 @@ backend is shut down. Include process/worker startup, data loading, serializatio
 collection, and artifact export in the primary comparison. Optional timing of
 compute without export is a separately labeled component measurement.
 
-Measure component costs separately to explain the end-to-end result. Report reused
+Operational trial reports separately measure CSV loading, identity/job
+preparation, manifest preparation/export, time to the first outcome, time spent
+advancing the backend iterator, and detailed artifact conversion/export. Backend
+iterator time combines startup, simulation, IPC/collection waits, and shutdown;
+it is not isolated worker CPU time. Workers can compute while the coordinator
+exports, so these intervals cannot attribute all costs independently. Finalization,
+imports, and process exit also remain in the external end-to-end timer. Report reused
 pools as a separate steady-state scenario, with initial setup cost recorded.
 For Ray report cluster provisioning/bootstrap separately and also present a cold
 total including it; reusing an already running cluster must not hide startup costs.
@@ -61,8 +70,11 @@ times. Sample simultaneous process-tree RSS at a declared interval (for example
 Short-lived workers and peaks between samples may be missed. Shared mapped pages
 can be counted in multiple RSS values; label this an RSS sum, not unique physical
 memory. Record PSS or cgroup memory separately when supported rather than silently
-equating the two. A small measurement dependency such as psutil can be evaluated
-in Phase 2; it is not installed in Phase 0.
+equating the two. Phase 2 uses optional psutil 7.2.2. Denied process observations invalidate
+published peak memory values; raw samples retain denial and vanished-process
+counts. Sequential sampling within each bin is approximate, not atomic. The
+spawn resource tracker is included when visible as a descendant. The observer
+process itself is outside the timed child process tree.
 
 Compare sequential with 2, 4, and 8 workers when the available hardware supports
 them. Record physical/logical CPU counts and any quotas. Unsupported configurations

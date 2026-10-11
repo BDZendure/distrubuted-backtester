@@ -1,7 +1,8 @@
 # ADR 0003: Separate semantic results from execution observations
 
-**Status:** Phase 1 semantic-result separation accepted and implemented.
-Identity, backends, and durable commits for Phases 2-5 remain proposed.
+**Status:** Semantic-result separation, stable identity, and streaming local
+backends accepted and implemented through Phase 2. Durable commits for Phases 4-5
+remain proposed.
 
 **Date:** 2026-10-10.
 
@@ -20,12 +21,13 @@ across backends; keep operational observations for diagnostics and benchmarks.
 
 Phase 1 exports sorted canonical JSON with exact money and explicitly rounded
 ratios. Release/semantics labels identify the implemented model but do not hash
-editable source code. Phase 2 manifests must record exact source revision and
-environment. Only the built-in SMA has fully captured strategy parameters in
+editable source code. Phase 2 includes an installed-source fingerprint in job/manifest identity and
+records Git revision/status plus the complete environment separately as
+operational observations. [ADR 0004](0004-bounded-local-execution.md) details this. Only the built-in SMA has fully captured strategy parameters in
 Phase 1; custom testing hooks cannot export results without supported provenance.
 
 In Phase 2, derive stable job IDs from canonical config, dataset byte digest and
-policy, engine/strategy identity, and schema version. Deliver outcomes incrementally;
+policy, engine/strategy identity, installed-source fingerprint, and schema version. Deliver outcomes incrementally;
 the experiment manager exports per-job artifacts and returns a compact index
 sorted by job ID. Do not accumulate all full equity paths in coordinator memory.
 Preserve duplicate parameter-grid membership in the manifest while executing

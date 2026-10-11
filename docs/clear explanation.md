@@ -4,18 +4,19 @@
 
 A **backtest** replays historical prices and follows a trading rule. It records
 hypothetical purchases, sales, fees, cash, and the value of shares still held.
-Phase 1 implements that replay for one asset, one daily price table, and one set
-of settings at a time. The current package release is `0.2.0`.
+The Phase 1 engine implements that replay for one asset, one daily price table,
+and one set of settings at a time. Phase 2 adds parameter sweeps that run many
+independent simulations sequentially or with local worker processes. The current
+package release is `0.3.0`.
 
 You can run the command below and get a JSON result containing the settings,
 data fingerprint, trades, order outcomes, daily portfolio values, and summary
 metrics. It uses whole shares and USD, and can hold shares or cash. This is
 **long-only** trading: it cannot sell borrowed shares or borrow money to buy more.
 
-The project name describes its eventual direction. Parameter sweeps, multiple
-workers, multiple machines, automatic recovery, databases, and performance
-benchmarks are planned for later phases. Phase 1 runs in a single process and has
-no runtime dependencies beyond Python's standard library.
+Sweeps and the benchmark runner now work on one machine. Multiple machines,
+automatic recovery, and databases remain future work. Backtests and sweeps use
+Python's standard library; benchmark memory sampling has an optional dependency.
 
 ## Python and the tools in simple terms
 
@@ -24,7 +25,13 @@ modules that make up this project. A **virtual environment**, named `.venv` here
 is a project folder containing the Python environment and installed tools.
 Activating it makes terminal commands use that environment.
 
-From the repository directory, the setup commands are:
+A **CLI**, or command-line interface, accepts commands typed into a terminal.
+Use your computer's Terminal app, or open this repository folder in VS Code and
+choose **Terminal > New Terminal**. Both run the same program. Enter these
+commands at the shell prompt, not inside a Python prompt showing `>>>`.
+
+The commands below use macOS/Linux shell syntax. Start in the repository directory
+that contains `pyproject.toml`, `src/`, and `examples/`, then run:
 
 ```bash
 python3 --version
@@ -38,6 +45,8 @@ under `src/`, so edits there are available without reinstalling each edit.
 `[dev]` also installs the development tools. Those tools help check and package
 the code; they are not required libraries for the simulation itself.
 `python -m ...` asks the selected Python interpreter to run an installed module.
+Activate `.venv` again when opening a new terminal. In the examples, a trailing
+backslash continues a command on the next line; you can paste the whole block.
 
 | Tool | Job |
 | --- | --- |
@@ -56,7 +65,8 @@ also needs an observed run before claiming it passed. See the
 
 ## Run the included example
 
-After setup, run this from the repository directory:
+After setup, run this from the repository directory. The committed
+[examples/sma.csv](../examples/sma.csv) is already included; no download is needed:
 
 ```bash
 python -m distributed_backtester backtest \
@@ -96,6 +106,80 @@ Invalid data is rejected before a new result is saved.
 Once a complete output file has been published, saving has succeeded. If removing
 its temporary helper file then fails, the program logs a cleanup warning and
 keeps the successful exit status. That warning does not invalidate the result.
+
+## Run four jobs as a parameter sweep
+
+A **job** is one backtest with one set of settings. A **sweep** tries every
+combination of the requested fast and slow windows. Here `--fast 1 2` and
+`--slow 3 4` create four jobs: `(1, 3)`, `(1, 4)`, `(2, 3)`, and `(2, 4)`.
+All use the same included prices, starting cash, and fees.
+
+First run them sequentially, one job at a time:
+
+```bash
+python -m distributed_backtester sweep \
+  --data examples/sma.csv --symbol SYNTH --price-basis raw \
+  --fast 1 2 --slow 3 4 --initial-cash 1000 --fee-bps 10 \
+  --backend sequential --workers 1 \
+  --output-dir artifacts/sweep-sequential
+```
+
+Then run the same four jobs with two worker processes:
+
+```bash
+python -m distributed_backtester sweep \
+  --data examples/sma.csv --symbol SYNTH --price-basis raw \
+  --fast 1 2 --slow 3 4 --initial-cash 1000 --fee-bps 10 \
+  --backend process --workers 2 --max-in-flight 4 \
+  --output-dir artifacts/sweep-process
+```
+
+`--backend` chooses how jobs run; it does not change their trading rules.
+`--workers 2` allows two separate Python processes to calculate jobs. Each worker
+receives its own immutable copy of the prices once and reuses it for later jobs.
+This is not shared memory. For the process backend, `--max-in-flight` caps the
+submitted jobs whose outcomes have not yet been consumed, including completed
+results waiting to be saved. Its default is twice the worker count, so two
+workers default to four. The sequential backend requires one worker and does
+not accept this option. Use `python -m distributed_backtester sweep --help`
+for the sweep options.
+
+Each sweep prints a short JSON summary with `submitted`, `succeeded`, and
+`failed` counts plus file paths. Open the output folder in VS Code to inspect:
+
+| File | What it tells you |
+| --- | --- |
+| `manifest.json` | Dataset and code fingerprints, unique job settings, and the requested grid membership |
+| `results/<job_id>.json` | One job's settings and detailed trading result, or a structured failure |
+| `index.json` | Final counts and a compact list sorted by job ID, with metrics, artifact paths, and content fingerprints |
+| `execution.json` | Backend, workers, pending-work limit, elapsed time, source path, and environment information |
+
+A **fingerprint** is a hash identifying exact content. Job IDs depend on the data,
+settings, and installed implementation. Given the same inputs and code, the
+manifest, detailed results, and index are identical across these backends.
+Execution details are stored separately because workers and timings can differ.
+
+Repeated settings collapse to one job. For example, `--fast 1 2 1 --slow 3 4`
+requests six grid entries but executes four unique jobs; the manifest retains all
+six entries. Every pair must have positive windows with fast smaller than slow.
+An invalid pair, such as `(3, 3)`, rejects the whole request before creating an
+output directory; it is not silently skipped.
+
+The output directory must be new, even if an existing directory is empty. Do not
+create it in advance. To run again, choose another name such as
+`artifacts/sweep-process-2`. Sweeps have no `--overwrite` option.
+
+| Sweep exit code | Meaning |
+| --- | --- |
+| `0` | All unique jobs succeeded and the index was finalized |
+| `1` | Collection completed, but at least one job has a recorded failure; the index includes those failures |
+| `2` | Invalid arguments/data, an existing destination, or a reported fatal backend/export error |
+
+After a command, `echo $?` shows its exit code in this shell. Ordinary job
+exceptions become failure records so other jobs can finish. A broken worker
+pool, invalid backend output, or export failure aborts collection. Partial files
+may remain, but no final `index.json` is published for an incomplete sweep.
+Phase 2 has no automatic retries or recovery; those are planned for Phase 4.
 
 ## What the trading rule means
 
@@ -227,6 +311,11 @@ table. The strategy chooses a target. The engine orders events. Execution change
 cash and shares. Metrics summarize the recorded equity. The CLI handles files and
 options around the calculation.
 
+For a sweep, the experiment manager creates jobs and a backend calls this same
+engine for each one. Detailed results are saved as they finish. Only job
+definitions and compact index records remain for the whole sweep; those still
+grow with the number of jobs, and each full result grows with its price-row count.
+
 Python callers can also supply a strategy object. A supplied built-in SMA must
 use the same windows as the backtest settings and start with fresh or reset state.
 Other custom strategy hooks can run in memory for reference checks, but their
@@ -248,18 +337,54 @@ declaration or detect every corporate action. For real data, the caller must
 establish that the supplied interval has no splits or dividends and contains the
 intended sessions. Mixing adjusted closes with raw opens does not fit this model.
 
-Phase 1 has no intraday trading, fractional shares, short selling, leverage,
+The engine has no intraday trading, fractional shares, short selling, leverage,
 corporate-action accounting, spreads, slippage, partial fills, or volume limits.
 It assumes a full fill at the next supplied open if cash permits. It does not
 download market data or establish that a historical stock selection avoids
 survivorship bias. Local JSON saving protects complete-file publication and
 refuses accidental overwrite by default; it is not a crash-recovery service.
 
+## Run a benchmark without assuming a speedup
+
+A benchmark runs a declared workload repeatedly to compare execution time and
+memory. Install the optional measurement tools, which pin `psutil` to `7.2.2`:
+
+```bash
+python -m pip install --editable ".[benchmark]"
+python -m distributed_backtester.benchmark run \
+  --bars 1000 --jobs 16 --workers 2 4 8 --repetitions 5 \
+  --output-dir artifacts/benchmark-example
+```
+
+The bar and job counts here are illustrative inputs, not measured results or
+the final report's chosen workloads. The runner generates deterministic synthetic
+prices and distinct job settings. It includes a sequential baseline, one warm-up
+per configuration, then five repetitions with rotating configuration order.
+Choose worker counts supported by your machine; counts above available cores are
+rejected. Use a new output directory for each benchmark.
+
+Each trial starts a fresh process. Timing includes startup, imports, loading,
+worker creation, calculation, result export, finalization, and shutdown. Dataset
+generation and output verification after the trial are outside that timing.
+The runner checks each result file's fingerprint and verifies equal semantic
+output digests across trials before producing a comparison report.
+
+Raw observations are retained. Memory sampling uses a nominal 50 ms interval and
+sums the coordinator's and live descendants' RSS, a measure of resident memory,
+within each sampling round. These readings are approximately aligned and can miss brief
+peaks or count shared pages more than once; the sum is not unique physical memory.
+The operating system's file cache is uncontrolled even though processes are new.
+Worker counts alone do not establish faster execution.
+
+The upcoming [Phase 2 report](phase-2-report.md) and
+[benchmark results](benchmarks/phase-2/results.md) will provide verification and
+actual measurements. See the [benchmark methodology](benchmarking.md) for the
+measurement definitions.
+
 ## What is planned next
 
 | Phase | Planned capability |
 | --- | --- |
-| 2 | Parameter sweeps, sequential/process backends, bounded work, detailed results exported as they finish, and a compact sorted result index |
 | 3 | Optional Ray execution across machines, with per-node memory and data-transfer measurements |
 | 4 | A single coordinator's durable job tracking, bounded retries, and at most one committed success per job ID, even if calculation repeats |
 | 5 | Parquet data and DuckDB analysis, comparing economic results while checking each format's provenance separately |
@@ -267,11 +392,13 @@ refuses accidental overwrite by default; it is not a crash-recovery service.
 | 7 | Operational tooling and a reproducible developer environment |
 | 8 | Final documentation and portfolio evidence based on implemented facts |
 
-None of those later features is implemented in Phase 1. Planned Phase 4 recovery
-does not promise coordinator high availability or recovery after disk loss.
-Several workers may be slower for small jobs, so scaling claims need actual
-measurements. Phase 2 requires explicit approval after the Phase 1 report.
+Those later features are not part of the implemented Phase 2 scope. Planned
+Phase 4 recovery does not promise coordinator high availability or recovery after
+disk loss. Several workers may be slower for small jobs, so scaling claims need
+actual measurements.
 
 Read the [technical explanation](technical-explanation.md) for the exact module
 interfaces and guarantees, the [Phase 1 plan](phase-1-plan.md) for the accepted
-scope, and the [roadmap](roadmap.md) for later phase checkpoints.
+engine scope, the [Phase 2 plan](phase-2-plan.md) for the local sweep design,
+[architecture](architecture.md) for module relationships, and the
+[roadmap](roadmap.md) for later phase checkpoints.

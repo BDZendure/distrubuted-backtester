@@ -2,9 +2,11 @@
 
 ## Current checks
 
-Phase 1 checks exact money/contracts, strict CSV validation, SMA decisions,
+Phases 1 and 2 check exact money/contracts, strict CSV validation, SMA decisions,
 execution, metrics, causal chronology, complete JSON publication, and real CLI
-subprocesses. The packaging test imports from an unrelated directory in isolated
+subprocesses, serializable jobs, source fingerprints, common-data initialization,
+real spawn execution with 1/2/4/8 workers, bounded buffering, deterministic
+experiment artifacts, and explicit failure/finalization behavior. The packaging test imports from an unrelated directory in isolated
 mode; CLI tests also run outside the repository without `PYTHONPATH` workarounds.
 CI builds wheel/source artifacts and runs the wheel's installed CLI in a fresh
 environment against the committed synthetic example.
@@ -12,7 +14,7 @@ environment against the committed synthetic example.
 Run pytest, Ruff lint/format, strict mypy, `pip check`, and `python -m build` using
 the [README commands](../README.md). Development checks are configured centrally
 in `pyproject.toml`. Counts and commands are recorded in the
-[Phase 1 report](phase-1-report.md). A count alone does not prove correctness;
+[Phase 2 report](phase-2-report.md). A count alone does not prove correctness;
 independent expectations and boundary cases provide the evidence.
 
 ## Phase 1 correctness evidence
@@ -47,14 +49,20 @@ ledger and equity path. Affordability additionally checks 2,928 small combinatio
 against exhaustive quantities and independent `Fraction` rounding. This bounded
 enumeration checks fee boundaries, not every possible large integer input.
 
-## Later backend and reliability checks
+## Backend and reliability checks
 
 Phase 2 compares complete canonical semantic outputs across sequential and process
 execution, varying worker count and deliberately varying completion order. Include
 ordinary failed jobs among successes and verify one outcome per unique job ID.
 Verify incremental export and a stable compact index without retaining all detailed
 results. Increase sweep size and inspect coordinator memory as well as worker memory.
-Use real subprocesses; mocks cannot establish spawn/serialization behavior.
+Tests use real subprocesses and real spawn pools. Narrow injection at an
+exception/export boundary is explicitly labeled, as are instrumented pool wrappers.
+A paused consumer test independently counts submissions, records initialization
+once per worker and multiple jobs per worker, and checks futures are released.
+The benchmark tests run actual fresh-process sequential/process trials. Optional
+psutil is installed for CI; measurement tests label injected denial/race cases.
+No mocked runtime substitutes for actual process execution.
 
 Phase 3 runs the same manifest through Ray. Distinguish local remote-task coverage
 from true multiple-machine behavior. Pin and record the environment for each run.

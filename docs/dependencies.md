@@ -1,6 +1,6 @@
 # Dependency plan
 
-## Current Phase 1 environment
+## Current Phase 2 environment
 
 Runtime dependencies are empty. Development/build tools are declared and pinned
 in `pyproject.toml`; installation uses a repository-local virtual environment.
@@ -12,11 +12,18 @@ in `pyproject.toml`; installation uses a repository-local virtual environment.
 | Ruff | 0.17.0 | Lint and formatting |
 | mypy | 2.4.0 | Strict static type checks |
 | build | 1.6.1 | Wheel and source distribution validation |
+| psutil (optional `benchmark` extra) | 7.2.2 | Sample coordinator/descendant RSS; hardware observations |
 
-Versions were read from public PyPI metadata during Phase 0. Transitive dependencies
-are resolved by pip, so this is not a complete environment lock. Capture `pip freeze`
-and exact Python/OS versions for benchmark evidence; adopt a complete environment
-lock before making reproducible performance comparisons in Phase 2.
+The core and process backend still require no third-party runtime dependency.
+Phase 2 adds only optional psutil; backtests and sweeps work without it. Version
+and macOS arm64 wheel support were checked against [PyPI metadata](https://pypi.org/project/psutil/).
+Its [API documentation](https://psutil.readthedocs.io/stable/) defines RSS and process-tree
+observations. The complete observed macOS arm64/Python 3.14.6 tool environment,
+including transitive versions, is in [benchmark.lock](../requirements/benchmark.lock).
+It is an exact version snapshot, without artifact hashes or a universal platform
+solver. Reports also capture all installed versions and Python/OS context.
+Install the lock before `--no-deps` project installation for equivalent tools;
+new platforms may require a separately reviewed snapshot.
 
 The CI Python matrix is 3.12 and 3.14. Local Phase 0 validation uses the available
 Python 3.14 interpreter, as does Phase 1; CI configuration is not proof of an
@@ -29,7 +36,7 @@ be verified at adoption time.
 | Phase | Dependencies to evaluate | Rationale |
 | --- | --- | --- |
 | 1 (implemented) | Standard-library `csv`, exact integer text parsing, `fractions`, `argparse`, `json`, `hashlib`, filesystem publication | No runtime dependency added; exact accounting needs no dataframe framework |
-| 2 | Standard-library `concurrent.futures`, `multiprocessing`; a measurement tool such as psutil if needed | Local CPU execution and whole-process memory measurement |
+| 2 (implemented) | Standard-library `concurrent.futures`, `multiprocessing`; optional psutil 7.2.2 | Local CPU execution and whole-process memory measurement |
 | 3 | Ray as an optional extra | Distributed scheduling and data placement |
 | 4 | Standard-library SQLite candidate | Atomic lifecycle/result commits for a single coordinator |
 | 5 | PyArrow and DuckDB; pandas for concrete tabular/reporting use if needed | Columnar storage and analytical queries |

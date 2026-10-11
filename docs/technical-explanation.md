@@ -2,23 +2,27 @@
 
 ## Implemented scope and verification
 
-Phase 1 implements a deterministic, single-process, daily backtester for one
-asset, USD, whole shares, and long-only targets. Release `0.2.0` includes strict
-CSV loading, an SMA strategy, next-open execution, exact accounting, return and
-drawdown metrics, a CLI, and versioned JSON export. Runtime dependencies in
+The Phase 1 engine implements a deterministic daily backtester for one asset,
+USD, whole shares, and long-only targets. Phase 2 adds immutable jobs, parameter
+sweeps, sequential and local process backends, incremental detailed export, a
+compact result index, and a benchmark runner. Release `0.3.0` retains strict CSV
+loading, the SMA strategy, next-open execution, exact accounting, return and
+drawdown metrics, and versioned JSON export. Runtime dependencies in
 `pyproject.toml` are empty. CSV parsing, integer arithmetic, `Fraction`, command
-parsing, hashing, and JSON use Python's standard library.
+parsing, hashing, JSON, and process execution use Python's standard library.
+The optional `benchmark` extra pins `psutil==7.2.2` for memory sampling.
 
-The [Phase 1 plan](phase-1-plan.md) defines the accepted scope. The
-[Phase 1 verification report](phase-1-report.md) is the place for actual commands,
-check results, environment, packaging evidence, and limitations. This guide
+The [Phase 1 plan](phase-1-plan.md) defines the engine scope, and the
+[Phase 2 plan](phase-2-plan.md) defines local experiment execution. The
+[Phase 1 verification report](phase-1-report.md) records the engine evidence;
+the upcoming [Phase 2 report](phase-2-report.md) will record the current commands,
+checks, environment, packaging evidence, and limitations. This guide
 describes implemented contracts; it does not infer verification from a plan or
 quote a provisional test count. See the
 [beginner guide](clear%20explanation.md) for setup and plain-language definitions.
 
-All experiment management, execution backends, multiprocessing, Ray, durable
-scheduling, retries, databases, and benchmark machinery described later in this
-document are **planned**, with approval required before Phase 2.
+Ray execution across machines, durable scheduling, retries, and databases remain
+planned for later phases. Phase 2 has no retries or recovery protocol.
 
 ## Actual module boundaries
 
@@ -32,7 +36,15 @@ document are **planned**, with approval required before Phase 2.
 | `simulation.py` | Session chronology, pending intent and sequence validation, fill/equity collection, terminal cancellation, and result assembly |
 | `metrics.py` | Exact return and initial-capital-anchored maximum drawdown from recorded equity |
 | `results.py` | Canonical result dictionaries/JSON and complete local-file publication |
-| `cli.py`, `__main__.py` | Options, configuration, input/output checks, loading, invocation, export, and user-facing errors |
+| `provenance.py` | Installed-source fingerprint and separate environment/Git snapshot |
+| `jobs.py` | Canonical immutable job identity, strict decoding, and grid deduplication with retained membership |
+| `worker.py` | Execute one job against matching data/implementation and return a result or structured ordinary failure |
+| `backends/base.py`, `sequential.py`, `process.py` | Streaming outcome protocol, reference execution, and bounded spawn execution |
+| `experiments.py` | Load once, create jobs, export detailed outcomes, and finalize semantic index plus operational execution record |
+| `workloads.py` | Deterministic synthetic CSV and distinct SMA benchmark configurations |
+| `measurement.py` | Optional process-tree RSS sampling, fresh child-process timing, and host metadata |
+| `benchmark.py` | Fresh-process trials, artifact verification, rotating repetitions, raw observations, and summaries |
+| `cli.py`, `__main__.py` | Backtest/sweep options, input/output checks, invocation, export, and user-facing errors |
 
 The implemented boundaries are:
 
@@ -327,7 +339,7 @@ slow 3, initial cash 1000, and fee 0 bps. Positive windows require fast < slow;
 cash must be positive exact micro-USD; fees are integers from 0 to 10000.
 `--output` selects a JSON file, otherwise JSON goes to stdout.
 `--overwrite` permits replacing that file. `backtest --help` explains options;
-top-level `--version` reports the installed release. The
+top-level `--version` reports the installed release, `0.3.0` for this version. The
 [beginner guide's option table](clear%20explanation.md#run-the-included-example)
 explains each argument.
 
@@ -336,6 +348,34 @@ aliases, including hard links. Configuration and CSV validation precede export.
 Known validation/file errors and argument errors exit with status 2 and readable
 diagnostics; successful invocation returns 0. A simulation failure must not be
 represented as a successful empty result.
+
+Phase 2 also exposes `distributed-backtester sweep` and
+`python -m distributed_backtester sweep`. For the committed
+[examples/sma.csv](../examples/sma.csv), a four-job process sweep is:
+
+```bash
+python -m distributed_backtester sweep \
+  --data examples/sma.csv --symbol SYNTH --price-basis raw \
+  --fast 1 2 --slow 3 4 --initial-cash 1000 --fee-bps 10 \
+  --backend process --workers 2 --max-in-flight 4 \
+  --output-dir artifacts/sweep-process
+```
+
+Use `--backend sequential --workers 1`, omit `--max-in-flight`, and choose a
+different new directory for the reference run. Sweep fast/slow lists and
+`--output-dir` are required. The default backend is sequential with one worker;
+the process backend requires positive workers and a positive pending limit.
+Every Cartesian pair must satisfy `1 <= fast < slow`. Any invalid pair rejects
+the whole grid before directory creation. Duplicate configurations execute once,
+with their original grid membership retained in the manifest.
+
+The destination directory must not exist, including as an empty directory;
+sweeps have no overwrite mode. Exit `0` means complete collection with all jobs
+successful. Exit `1` means complete collection with structured job failures.
+Argument/validation/file errors and reported fatal backend/protocol/export errors
+exit `2`. Fatal incomplete collection does not publish `index.json`; partial
+artifacts can remain. These semantics differ from an ordinary rejected trading
+intent, which is part of a successful simulation's ledger.
 
 `write_result` serializes first, creates parent directories as needed, and writes
 a complete temporary sibling in the destination directory. It flushes and
@@ -360,50 +400,187 @@ support; this implementation does not claim universal filesystem behavior.
 
 ## Release identity and reproducibility limits
 
-For an installation of release `0.2.0`, the engine ID is
-`distributed-backtester/0.2.0:daily-long-only-v1`. The release component comes
+For an installation of release `0.3.0`, the engine ID is
+`distributed-backtester/0.3.0:daily-long-only-v1`. The release component comes
 from installed package metadata; the suffix identifies the declared simulation
 semantics. It is not a source-code hash. Editing code in an editable installation
 can leave the release and engine ID unchanged, so that ID alone does not identify
 an exact implementation revision.
 
 The dataset byte digest identifies input bytes, not execution environment.
-Phase 1 JSON does not record an exact repository revision or complete environment.
-**Planned Phase 2** experiment and benchmark manifests must record exact source
-revision, clean/dirty state and any local changes needed to reconstruct it,
-Python/OS and relevant dependency versions, workload identity, and environment
-settings. Direct development-tool pins do not constitute a complete transitive
-environment lock. Custom strategy provenance needs its own explicit parameters
-and state contract before being claimed reproducible.
+The standalone backtest JSON retains the Phase 1 provenance contract. Phase 2
+job envelopes add `ImplementationIdentity(engine_id, source_sha256)` so editable
+source changes affect identity even when the installed version is unchanged.
 
-## Planned parallel execution and result identity
+`source_fingerprint()` reads the installed package directory, independent of the
+working directory. It hashes all `.py` files in sorted package-relative POSIX
+name order. For each file it feeds SHA-256 an unsigned 8-byte big-endian filename
+length, the UTF-8 filename, an unsigned 8-byte big-endian content length, and the
+exact file bytes. Framing prevents ambiguous concatenations. Absolute installation
+paths, non-Python files, and cache directories are excluded. Directory symlinks,
+missing sources, and traversal/read failures are rejected. This fingerprints the
+whole installed Python package, including orchestration and benchmark code.
 
-**Phase 2, not implemented:** A sequential reference backend and an explicit
-spawn-based `ProcessPoolExecutor` will call the same core. Each process will
-initialize common immutable data once per sweep; jobs carry references/settings.
-This still duplicates the dataset per process.
+Operational environment capture records Python implementation/version, OS/platform,
+architecture, logical/available cores, every unique installed distribution
+name/version pair, known BLAS/OpenMP thread controls, and Git revision, porcelain
+status, and dirty state when available. Automatic Git capture recognizes this
+package's source checkout; an unrelated enclosing repository is not used for a
+wheel installation. Unavailable Git fields are `null`. These records supplement
+the source hash but do not archive dirty file contents or reconstruct an environment
+by themselves. The benchmark dependency snapshot is an exact version list, not a
+universal solver or artifact-hash lock. Custom strategies still need explicit
+parameter and state provenance before semantic export is supported.
 
-Bounded submissions alone do not bound memory retained from completed jobs.
-Backends will stream outcomes to the experiment manager, which exports each
-detailed result and releases it, retaining a compact outcome record. The final
-index sorts compact records by stable job ID. Job metadata/index memory still
-grows with job count, and one full result still grows with its bar count. Measure
-coordinator memory as sweep size increases before claiming this design scales.
+## Implemented jobs, backends, and experiment collection
 
-Planned stable job IDs hash canonical configuration, dataset byte digest and
-policy, strategy/engine identity, and schema version. Paths, timestamps, workers,
-and attempt IDs are excluded. Duplicate configurations collapse to one job;
-the manifest retains their original grid membership. Exact revision/environment
-records supplement these identities.
+`JobSpec` is frozen and carries its validated `BacktestConfig`, `DatasetMetadata`,
+`ImplementationIdentity`, schema version 1, and job ID. `create_job` hashes the
+UTF-8 canonical payload: JSON with sorted keys, compact separators, and NaN
+disallowed. Its inputs are:
 
-Same-source backend checks will compare complete canonical semantic results,
-including provenance, against the sequential reference one artifact at a time.
+- Schema version.
+- Configuration: SMA ID, fast/slow windows, initial cash in integer micro-USD,
+  money unit, and fee basis points.
+- Dataset metadata: symbol, source-byte SHA-256, USD currency, raw price basis,
+  and validation version.
+- Implementation: installed release/engine semantics ID and installed-source SHA-256.
+
+The lowercase SHA-256 job ID excludes paths, timestamps, backend, workers, and
+runtime measurements. `JobSpec.from_dict` rejects unknown/missing fields and
+unsupported schema/strategy/unit values, rebuilds validated domain records, and
+verifies the supplied ID. Grid expansion retains requested membership in fast-list
+then slow-list order, including duplicates, but returns unique jobs sorted by ID.
+The experiment ID hashes the semantic manifest payload, including that membership;
+changing requested membership can change the experiment ID without changing jobs.
+
+`ExecutionBackend.iter_outcomes(jobs, dataset, implementation)` yields
+`JobOutcome(job_id, result, failure)` with exactly one result or failure.
+`execute_job` checks dataset metadata and implementation identity, then invokes
+the same `run_backtest` core with a fresh built-in SMA. Ordinary `Exception`s
+become `JobFailure(error_type, message)` records; `BaseException` is not swallowed.
+Dataset and implementation mismatches also become structured job failures.
+
+`SequentialBackend` validates the current installed identity and yields one job
+at a time. `ProcessBackend(workers, max_in_flight=None)` creates a fresh
+`ProcessPoolExecutor` using explicit `multiprocessing.get_context("spawn")`.
+Its top-level initializer checks installed identity once per worker and retains
+one immutable dataset copy in that process. Subsequent submissions carry small
+job specifications, not the full bar table. The coordinator and each worker
+still have separate dataset copies; there is no actual shared memory.
+
+The process backend bounds submitted, unconsumed futures by `max_in_flight`,
+defaulting to `2 * workers`. The bound includes running/queued jobs and completed
+results awaiting consumption. It waits for `FIRST_COMPLETED`, checks each outcome
+against its submitted ID, yields completed outcomes, and refills after the consumer
+resumes. Completed futures retain results until their references are released.
+On closure/error, it attempts to cancel pending futures and shuts down the pool;
+already running jobs may finish during shutdown.
+
+`run_experiment` loads the CSV once, fingerprints the implementation, and expands
+the grid before `collect_experiment` creates a fresh directory. Collection checks
+outcome IDs for unknowns/duplicates and each successful result for matching config,
+dataset, engine, and supported SMA identity. Its files are:
+
+| File | Contract |
+| --- | --- |
+| `manifest.json` | Canonical semantic dataset/implementation identity, sorted unique jobs, requested grid membership, and experiment ID |
+| `results/<job_id>.json` | Incrementally published job envelope with status and complete semantic result or structured failure |
+| `execution.json` | Operational backend/workers, configured and observed in-flight limits, elapsed time before finalization, source path, and environment |
+| `index.json` | Final sorted compact outcomes with relative artifact paths, content SHA-256, metrics/failure, and submitted/succeeded/failed counts |
+
+The collector exports each detailed outcome as it arrives and releases it,
+retaining compact records. After every expected job has exactly one exported
+outcome and backend shutdown completes, it writes the execution record and
+publishes `index.json` last. A complete index may include ordinary job failures.
+A broken pool, initializer failure, protocol violation such as missing/duplicate
+outcomes, or export failure aborts the experiment without an index. Existing
+partial artifacts are not resumed. Retries and durable recovery belong to Phase 4.
+
+Streaming export bounds retained detailed outcomes by backend buffering; it does
+not make total memory constant. Job specifications, membership, and compact index
+records use `O(jobs)` memory. Each simulation and detailed result/export uses
+`O(bars)` memory, and process execution adds dataset copies and up to the bounded
+number of retained detailed outcomes. Coordinator growth with job count and
+worker dataset duplication require measurements before scaling claims.
+
+Manifest, detailed artifacts, and index are semantic outputs independent of the
+backend and completion order for identical inputs, membership, and installed
+source. Operational fields belong in `execution.json` and benchmark observations.
+Same-source backend comparison covers complete canonical semantic results,
+including provenance, one artifact at a time.
+
 **Phase 5 cross-format checks are a separate planned contract:** converting CSV
 to Parquet changes source bytes, digest, and job identity. First establish equal
 validated bars, configuration, and policy; then compare economic fields: fills,
 order outcomes, equity, final portfolio, and metrics. Validate each artifact's
 provenance and conversion lineage separately. This preserves complete equality
 for backends using the same source artifact.
+
+## Implemented local benchmark methodology
+
+Install the optional sampling dependency and invoke the benchmark module directly:
+
+```bash
+python -m pip install --editable ".[benchmark]"
+python -m distributed_backtester.benchmark run \
+  --bars 1000 --jobs 16 --workers 2 4 8 --repetitions 5 \
+  --output-dir artifacts/benchmark-example
+```
+
+These are illustrative workload inputs, not performance observations. The
+runner always includes sequential execution and rejects worker counts above
+available cores. The destination must be fresh. `workloads.py` generates exact
+synthetic prices with a local seeded RNG, consecutive synthetic dates including
+weekends, and prefix-stable rows. Its distinct configurations use bounded SMA
+windows and cash increments after each window-pair batch, preserving the requested
+unique job count. The workload record includes bars/jobs/seed, data digest, symbol,
+configuration-generator identity, and fees.
+
+Every warm-up and timed trial starts a fresh experiment process; process
+configurations also create a fresh pool. Timing uses `perf_counter` from before
+process creation through child exit, including
+imports, CSV loading, job creation, pool startup, simulation, serialization,
+collection, detailed export, execution/index finalization, and shutdown. Synthetic
+CSV generation, the observer's own RSS, and artifact verification after child exit
+are excluded. The sweep's `elapsed_before_finalization_seconds` has a narrower
+boundary and is not the primary benchmark duration.
+
+There is one warm-up per configuration, retained separately from comparison
+summaries, followed by five repetitions in the example. Configuration order rotates
+each repetition. Trials are labeled `process-cold / OS cache uncontrolled`;
+a fresh process does not establish a cold filesystem cache. Raw observations,
+stdout/stderr, per-trial artifacts, and environment/hardware records are retained.
+`observations.json` records progress, including failed trials; a successful run
+finalizes `report.json` with median/range, throughput, speedup, and efficiency
+summaries. No particular speedup is implied by this machinery.
+
+The runner checks the submitted unique job count against the requested workload.
+`semantic_digest` requires an all-success index, reads each detailed artifact, and
+verifies its SHA-256 against the index. It then hashes an 8-byte manifest length,
+the manifest bytes, and the index bytes. Since the index contains the verified
+artifact digests, equality covers manifest, index, and detailed
+semantic outputs. The runner requires the same digest across warm-ups and timed
+trials before completing the report; `execution.json` is excluded.
+
+Optional `psutil==7.2.2` sampling uses a nominal 50 ms interval
+(`--interval-seconds 0.05`). Raw process-tree RSS readings cover the experiment
+coordinator and its live
+descendants, including worker/runtime children. Each sampling round sums readings
+aligned approximately in time; peak tree RSS is the highest of those sums, not a
+sum of independent per-process peaks. Coordinator RSS is reported separately.
+Raw rounds record elapsed timestamps, RSS sums, successful process reads, and
+vanished/denied observation counts. Actual intervals include sampling work.
+Any access denial invalidates both reported peaks (`null`); an entirely unobserved
+peak is also `null`. Raw sums can be partial when processes disappear or access is
+denied. RSS can count shared pages repeatedly, and samples can miss short-lived children
+or brief peaks. This is a sampled RSS sum, with no claim to unique physical memory.
+Observer overhead is present consistently in trials.
+
+The upcoming [benchmark results](benchmarks/phase-2/results.md) and
+[Phase 2 report](phase-2-report.md) will provide measured observations and
+verification evidence. See [benchmark methodology](benchmarking.md) for the wider
+measurement contract. This explanation makes no measured performance claims.
 
 ## Planned Ray execution and measurement
 
@@ -412,14 +589,12 @@ checked at adoption. Its object store does not make data shared across machines
 without transfer, serialization, spill, eviction, and locality costs. A local Ray
 run cannot establish performance across physical machines.
 
-Planned end-to-end timing includes startup, loading, submission, serialization,
-collection, detailed artifact export, compact index creation, and shutdown.
-Fresh-process and reused-pool measurements need distinct declared boundaries.
-Compare identical successful job sets and output detail, retaining raw samples,
-failures, and exact environment records.
+Ray measurements must preserve the declared end-to-end timing boundary and
+identical successful job sets/output detail. Fresh-process and reused-pool
+measurements need distinct declared boundaries, with raw samples, failures, and
+exact environment records retained.
 
-For local execution, peak memory is the highest sampled simultaneous RSS sum of
-coordinator and workers. For Ray, sample every declared node's drivers, workers,
+For Ray, sample every declared node's drivers, workers,
 runtime services, and object-store observations, including processes outside the
 driver's child tree. Align timestamped node samples and report clock skew,
 missing data, and alignment uncertainty. Never sum independent process or node
@@ -429,7 +604,7 @@ Report object-store used bytes/capacity separately, avoiding double-counting
 shared mappings already included in RSS. RSS sums can count shared pages more
 than once and miss brief peaks; declare those limitations. The
 [benchmark methodology](benchmarking.md) defines the planned measurement scope.
-No throughput or speedup is established by Phase 1's example or test duration.
+The five-bar example and test duration do not establish throughput or speedup.
 
 ## Planned recovery and storage guarantees
 

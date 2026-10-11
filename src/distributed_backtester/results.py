@@ -7,11 +7,26 @@ from datetime import date
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from distributed_backtester.models import BacktestResult
+from distributed_backtester.models import BacktestResult, Metrics
 from distributed_backtester.money import format_money, format_ratio
 from distributed_backtester.simulation import SMA_ID
 
 _LOG = logging.getLogger(__name__)
+
+
+def metrics_record(metrics: Metrics) -> dict[str, object]:
+    """Compact metrics for a result or experiment index, with identical units."""
+    return {
+        "total_return": format_ratio(
+            metrics.total_return.numerator, metrics.total_return.denominator
+        ),
+        "maximum_drawdown": format_ratio(
+            metrics.maximum_drawdown.numerator, metrics.maximum_drawdown.denominator
+        ),
+        "final_equity": format_money(metrics.final_equity),
+        "fill_count": metrics.fill_count,
+        "total_fees": format_money(metrics.total_fees),
+    }
 
 
 def result_to_dict(result: BacktestResult) -> dict[str, object]:
@@ -22,7 +37,6 @@ def result_to_dict(result: BacktestResult) -> dict[str, object]:
         )
     config = result.config
     metadata = result.dataset_metadata
-    metrics = result.metrics
     parameters = {
         "fast_window": config.strategy.fast_window,
         "slow_window": config.strategy.slow_window,
@@ -101,17 +115,7 @@ def result_to_dict(result: BacktestResult) -> dict[str, object]:
             "cash": format_money(result.final_portfolio.cash),
             "holdings": result.final_portfolio.holdings,
         },
-        "metrics": {
-            "total_return": format_ratio(
-                metrics.total_return.numerator, metrics.total_return.denominator
-            ),
-            "maximum_drawdown": format_ratio(
-                metrics.maximum_drawdown.numerator, metrics.maximum_drawdown.denominator
-            ),
-            "final_equity": format_money(metrics.final_equity),
-            "fill_count": metrics.fill_count,
-            "total_fees": format_money(metrics.total_fees),
-        },
+        "metrics": metrics_record(result.metrics),
     }
 
 
@@ -125,13 +129,16 @@ def serialize_result(result: BacktestResult) -> str:
 def write_result(
     result: BacktestResult, path: Path, *, overwrite: bool = False
 ) -> None:
+    write_text(serialize_result(result), path, overwrite=overwrite)
+
+
+def write_text(text: str, path: Path, *, overwrite: bool = False) -> None:
     """Publish a complete sibling file, with no overwrite unless requested.
 
     Hard-link publication refuses an existing destination atomically. Replacement
     uses os.replace. This is local file publication, not durable job persistence;
     directory fsync, crash recovery, and distributed idempotency are later work.
     """
-    text = serialize_result(result)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary: Path | None = None
     try:
