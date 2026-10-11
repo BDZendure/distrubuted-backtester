@@ -7,6 +7,7 @@ from datetime import date
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+from distributed_backtester.jobs import metadata_record
 from distributed_backtester.models import BacktestResult, Metrics
 from distributed_backtester.money import format_money, format_ratio
 from distributed_backtester.simulation import SMA_ID
@@ -52,13 +53,7 @@ def result_to_dict(result: BacktestResult) -> dict[str, object]:
             "sizing": "maximum-affordable-whole-shares-on-target-change",
             "timing": "close-decision-next-supplied-open-fill-close-mark",
         },
-        "dataset": {
-            "symbol": metadata.symbol,
-            "source_sha256": metadata.source_sha256,
-            "currency": metadata.currency,
-            "price_basis": metadata.price_basis,
-            "validation_version": metadata.validation_version,
-        },
+        "dataset": metadata_record(metadata),
         "fills": [
             {
                 "sequence": fill.sequence,

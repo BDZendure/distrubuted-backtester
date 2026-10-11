@@ -31,13 +31,21 @@ def config_record(config: BacktestConfig) -> dict[str, object]:
 
 
 def metadata_record(metadata: DatasetMetadata) -> dict[str, object]:
-    return {
+    record: dict[str, object] = {
         "symbol": metadata.symbol,
         "source_sha256": metadata.source_sha256,
         "currency": metadata.currency,
         "price_basis": metadata.price_basis,
         "validation_version": metadata.validation_version,
     }
+    if metadata.source_format == "parquet":
+        record.update(
+            source_format="parquet",
+            dataset_version=metadata.dataset_version,
+            parent_source_sha256=metadata.parent_source_sha256,
+            bars_sha256=metadata.bars_sha256,
+        )
+    return record
 
 
 def _payload(
@@ -133,6 +141,12 @@ class JobSpec:
         )
         if config["strategy_id"] != SMA_ID or config["money_unit"] != "micro-USD":
             raise ValueError("unsupported strategy or money unit")
+        storage_keys = (
+            {"source_format", "dataset_version", "parent_source_sha256", "bars_sha256"}
+            if isinstance(record["dataset"], dict)
+            and "source_format" in record["dataset"]
+            else set()
+        )
         metadata = _record(
             record["dataset"],
             {
@@ -141,11 +155,14 @@ class JobSpec:
                 "currency",
                 "price_basis",
                 "validation_version",
-            },
+            }
+            | storage_keys,
             "dataset",
         )
         if metadata["currency"] != "USD" or metadata["price_basis"] != "raw":
             raise ValueError("unsupported currency or price basis")
+        if storage_keys and metadata["source_format"] != "parquet":
+            raise ValueError("extended dataset metadata requires Parquet")
         implementation = _record(
             record["implementation"], {"engine_id", "source_sha256"}, "implementation"
         )
@@ -165,6 +182,18 @@ class JobSpec:
                 validation_version=_integer(
                     metadata["validation_version"], "validation_version"
                 ),
+                source_format="parquet" if storage_keys else "csv",
+                dataset_version=_text(metadata["dataset_version"], "dataset_version")
+                if storage_keys
+                else None,
+                parent_source_sha256=_text(
+                    metadata["parent_source_sha256"], "parent_source_sha256"
+                )
+                if storage_keys
+                else None,
+                bars_sha256=_text(metadata["bars_sha256"], "bars_sha256")
+                if storage_keys
+                else None,
             ),
             implementation=ImplementationIdentity(
                 _text(implementation["engine_id"], "engine_id"),

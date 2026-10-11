@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "distributed-backtester"
-version = "0.5.0"
+version = "0.6.0"
 description = "A correctness-first foundation for reproducible distributed backtesting."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -31,6 +31,7 @@ dev = [
 ]
 benchmark = ["psutil==7.2.2"]
 distributed = ["ray==2.59.0"]
+storage = ["pyarrow==25.0.1", "duckdb==1.5.6"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

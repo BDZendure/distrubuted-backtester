@@ -44,6 +44,10 @@ class DatasetMetadata:
     currency: Literal["USD"] = "USD"
     price_basis: Literal["raw"] = "raw"
     validation_version: int = 1
+    source_format: Literal["csv", "parquet"] = "csv"
+    dataset_version: str | None = None
+    parent_source_sha256: str | None = None
+    bars_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -62,6 +66,23 @@ class DatasetMetadata:
             raise ValueError("price_basis must be raw")
         if type(self.validation_version) is not int or self.validation_version != 1:
             raise ValueError("validation_version must be 1")
+        if self.source_format not in {"csv", "parquet"}:
+            raise ValueError("source_format must be csv or parquet")
+        hashes = (self.dataset_version, self.parent_source_sha256, self.bars_sha256)
+        if self.source_format == "csv":
+            if any(value is not None for value in hashes):
+                raise ValueError("CSV metadata must not contain Parquet provenance")
+        elif any(
+            not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value)
+            for value in hashes
+        ):
+            raise ValueError("Parquet metadata requires three lowercase SHA-256 hashes")
+
+    @property
+    def version_id(self) -> str:
+        return (
+            self.source_sha256 if self.dataset_version is None else self.dataset_version
+        )
 
 
 @dataclass(frozen=True, slots=True)

@@ -83,6 +83,16 @@ def load_csv(path: Path, *, symbol: str, price_basis: Literal["raw"]) -> MarketD
     except OSError as error:
         raise DataValidationError(f"{path}: cannot read CSV source: {error}") from error
 
+    return _load_csv_snapshot(path, snapshot, symbol=symbol, price_basis=price_basis)
+
+
+def _load_csv_snapshot(
+    path: Path, snapshot: bytes, *, symbol: str, price_basis: Literal["raw"]
+) -> MarketDataset:
+    """Hash and parse the same immutable bytes, including cache lookups."""
+    if price_basis != "raw":
+        raise _invalid(path, 1, "price_basis", "only raw prices are supported")
+
     try:
         metadata = DatasetMetadata(
             symbol=symbol,
