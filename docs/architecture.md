@@ -2,10 +2,11 @@
 
 ## Status and scope
 
-This document describes the proposed system through Phase 8. Phase 0 supplies
-documentation, packaging, and development checks. All simulation interfaces and
-execution components below are design contracts to implement in their assigned
-phases. The project currently has no functioning backtester.
+This document describes the system through Phase 8. Phase 0 established the
+foundation; the approved Phase 1 implements strict CSV loading, SMA signals,
+exact execution/accounting, a deterministic simulation, metrics, JSON export,
+and a CLI. Experiments, execution backends, workers, scheduling, and analytical
+storage remain future designs. See the [Phase 1 report](phase-1-report.md).
 
 The engineering goal is reproducible independent simulations, reliable execution,
 and honest measurements. Strategy profitability is outside the acceptance criteria.
@@ -65,7 +66,7 @@ never mutate the same portfolio and do not directly own durable commit decisions
 
 ## Minimal directory structure
 
-Phase 0 creates only these files and directories:
+Current structure (phase reports/plans and additional unit tests abbreviated):
 
 ```text
 .github/workflows/ci.yml
@@ -76,9 +77,25 @@ README.md
 pyproject.toml
 src/distributed_backtester/
     __init__.py
+    __main__.py
+    money.py
+    models.py
+    data.py
+    strategy.py
+    execution.py
+    simulation.py
+    metrics.py
+    results.py
+    cli.py
     py.typed
 tests/
     test_packaging.py
+    test_data.py
+    test_strategy.py
+    test_simulation.py
+    test_cli.py
+examples/
+    sma.csv
 docs/
     architecture.md
     roadmap.md
@@ -89,6 +106,8 @@ docs/
     technical-explanation.md
     phase-0-plan.md
     phase-0-report.md
+    phase-1-plan.md
+    phase-1-report.md
     decisions/
         README.md
         0001-modular-package.md
@@ -96,51 +115,59 @@ docs/
         0003-reproducibility-and-results.md
 ```
 
-Phase 1 is expected to add `models.py`, `data.py`, `strategy.py`, `simulation.py`,
-`metrics.py`, and `cli.py`, plus synthetic CSV fixtures and focused tests. Keep
-execution and portfolio rules in small functions within `simulation.py` initially;
-extract `execution.py` only if its responsibilities warrant a separate module.
+Execution has its own small module because fee rounding, affordability, timing,
+and order rejection have independent reference tests. `simulation.py` owns event
+ordering; `results.py` owns serialization and complete-file publication.
 Phase 2 adds `experiments.py`, `jobs.py`, and `backends/`. Phase 4 adds scheduler
 and persistence modules. No empty subsystem packages are created in advance.
 
-## Proposed contracts
+## Implemented and future contracts
 
-These names express intended responsibilities, not a frozen public API.
-Phase 1 approval includes reviewing these semantics before coding them.
+Phase 1 names match the implementation. Contracts explicitly labeled Phase 2
+remain proposals. The API may evolve with documented decisions at phase gates.
 
 | Contract | Fields and rules |
 | --- | --- |
 | `Bar` | ISO session date; integer micro-dollar open/high/low/close; integer nonnegative volume |
 | `DatasetMetadata` | Symbol, currency (`USD` initially), `raw` price basis, CSV byte SHA-256, validation schema version |
 | `MarketDataset` | Metadata plus an immutable ordered tuple of bars; at least one bar |
-| `StrategyConfig` | Moving-average windows with `1 <= fast < slow`; explicit sizing policy |
+| `StrategyConfig` | Moving-average windows with `1 <= fast < slow`; sizing is fixed by the engine semantics |
 | `BacktestConfig` | Strategy config, positive initial cash in micro-dollars, nonnegative integer proportional fee in basis points |
 | `TargetIntent` | Target exposure `flat` or `invested`; decision session; order sequence number |
-| `PortfolioView` | Cash and whole-share holdings visible after the current close mark |
+| `Portfolio` | Immutable cash and whole-share holdings visible after the current close mark |
+| `CloseHistory` | Read-only prefix of frozen session/close observations; captured bounds cannot extend as later closes arrive |
 | `Fill` | Decision and execution sessions; side; whole-share quantity; open price; rounded fee; cash after fill |
 | `OrderOutcome` | Filled, no change needed, rejected, or canceled; reason such as no affordable share or end of dataset |
 | `EquityPoint` | Session, cash, holdings, close price, equity in micro-dollars |
-| `BacktestResult` | Schema version, engine identity, data/config provenance, fills, order outcomes, equity path, final holdings/cash, metrics |
+| `BacktestResult` | Schema version, engine/strategy identity, data/config provenance, fills, order outcomes, equity path, final holdings/cash, metrics |
 | `JobSpec` (Phase 2) | Stable ID, dataset reference/digest, full config, engine identity; JSON-serializable and immutable |
 | `JobOutcome` (Phase 2) | Job ID and either result or structured failure; execution metadata kept outside the semantic result |
 | `OutcomeRecord` (Phase 2) | Compact job ID/status, relative result artifact reference, content digest, and summary metrics |
 | `ExperimentResult` (Phase 2) | Manifest reference and job-ID-sorted index of outcome records; full equity paths remain in per-job artifacts |
 
-Planned signatures:
+Implemented signatures:
 
 ```text
 load_csv(path: Path, *, symbol: str, price_basis: Literal["raw"]) -> MarketDataset
-run_backtest(config: BacktestConfig, dataset: MarketDataset) -> BacktestResult
-strategy.on_close(history: CloseHistory, portfolio: PortfolioView) -> TargetIntent | None
-execute_intent(intent: TargetIntent, open_price: int, portfolio: Portfolio, fees: FeeConfig) -> OrderOutcome
-calculate_metrics(initial_cash: int, equity: Sequence[EquityPoint]) -> Metrics
-ExecutionBackend.iter_outcomes(jobs: Sequence[JobSpec]) -> Iterator[JobOutcome]
+run_backtest(config: BacktestConfig, dataset: MarketDataset, *, strategy: Strategy | None = None) -> BacktestResult
+strategy.on_close(history: CloseHistory, portfolio: Portfolio) -> TargetIntent | None
+execute_intent(intent: TargetIntent, execution_session: date, open_price: int, portfolio: Portfolio, fee_bps: int) -> tuple[Portfolio, OrderOutcome]
+calculate_metrics(initial_cash: int, equity: Sequence[EquityPoint], fills: Sequence[Fill] = ()) -> Metrics
+serialize_result(result: BacktestResult) -> str
+write_result(result: BacktestResult, path: Path, *, overwrite: bool = False) -> None
 ```
 
 `CloseHistory` exposes only the prefix through the current session. Passing the
 full dataset plus an index to arbitrary strategy code would expose future values.
-The strategy instance and portfolio are fresh for each simulation; loaded market
-data can be reused because it is immutable.
+The default strategy instance and portfolio are fresh for each simulation; loaded
+market data can be reused because it is immutable. Caller-supplied strategies must
+own/reset their state. An explicitly supplied built-in SMA must match the reported
+configuration. Arbitrary custom hooks support causal/reference tests; their results
+cannot be exported as semantic JSON until their parameters and versioned identity
+have a supported provenance contract. Phase 1 export supports the built-in SMA.
+
+Future Phase 2 backend contract:
+`ExecutionBackend.iter_outcomes(jobs: Sequence[JobSpec]) -> Iterator[JobOutcome]`.
 
 ## Daily execution and strategy semantics
 
@@ -161,7 +188,7 @@ invested exposure and `fast < slow` requests flat exposure. Equality preserves
 the prior target; initial target is flat. Emit an intent only when the target
 changes, including an initial ready positive comparison. This is a target regime
 convention; it does not require a previous fully warmed comparison on entry.
-The convention and its tests must be documented in Phase 1.
+The convention has dedicated warm-up, regime, equality, and repeat-run tests.
 
 An invested intent buys the greatest affordable whole-share quantity using the
 next open and fees. A flat intent sells all current shares. Already-invested
@@ -192,7 +219,7 @@ always fill a cash-target order at the exact opening price.
   check. Do not subtract fees after choosing an unaffordable quantity.
 - After every fill, `cash >= 0` and `holdings >= 0`. Equity is exactly
   `cash + holdings * close_price`.
-- Ratios in reports may be floating point; cash/fills/equity remain exact, and
+- Ratios use exact `Fraction` values internally; cash/fills/equity remain exact, and
   JSON money values use fixed six-place decimal strings rather than JSON floats.
   Canonical export sorts keys and expresses return/drawdown ratios as twelve-place
   decimal strings rounded half-even from the integer numerator/denominator.
@@ -243,6 +270,22 @@ semantic output. No wall clock, process ID, worker count, file path, or completi
 order belongs in that output. Execution observations have a separate envelope.
 Market-data hashes are computed from the same immutable byte snapshot that is
 parsed; hashing a file again after loading could identify different content.
+
+Phase 1 records installed package release plus daily engine semantics in
+`engine_id`, and an SMA semantics identifier. A release label is not a cryptographic
+source identity: editable changes can retain the version. Record the exact Git
+revision and environment for reproduction; Phase 2 must add immutable revision
+identity to its experiment manifests before relying on content-derived job IDs.
+
+JSON publication writes and flushes/fsyncs a temporary sibling before publishing.
+Without overwrite, a hard link fails if the destination already exists; explicit
+overwrite uses `os.replace`. The CLI rejects resolved paths and existing hard links
+aliasing the input. This protects normal local use, not hostile concurrent filesystem
+changes or crash recovery. No directory fsync or durable scheduling guarantee is
+claimed. Filesystems must support these local publication operations. Publication
+is the commit point; a subsequent cleanup failure logs a warning and does not
+turn the completed export into an error. Rejected fields with malformed types
+use null in JSON diagnostics, retaining the rejection reason.
 
 Phase 2 hashes canonical serialized configuration, dataset byte digest and policy,
 strategy/engine identity, and schema version to form job IDs. Paths and attempt

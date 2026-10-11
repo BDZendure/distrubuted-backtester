@@ -2,15 +2,18 @@
 
 ## Current checks
 
-Phase 0 tests only the packaging boundary: an installed package must import from
-an unrelated working directory with Python isolated mode. The subprocess must
-succeed through the installation, without a repository `PYTHONPATH` workaround.
-CI also builds wheel/source artifacts and imports the wheel in a fresh environment.
-Passing this check says nothing about simulation correctness.
+Phase 1 checks exact money/contracts, strict CSV validation, SMA decisions,
+execution, metrics, causal chronology, complete JSON publication, and real CLI
+subprocesses. The packaging test imports from an unrelated directory in isolated
+mode; CLI tests also run outside the repository without `PYTHONPATH` workarounds.
+CI builds wheel/source artifacts and runs the wheel's installed CLI in a fresh
+environment against the committed synthetic example.
 
 Run pytest, Ruff lint/format, strict mypy, `pip check`, and `python -m build` using
 the [README commands](../README.md). Development checks are configured centrally
-in `pyproject.toml`. No coverage percentage target is meaningful at this stage.
+in `pyproject.toml`. Counts and commands are recorded in the
+[Phase 1 report](phase-1-report.md). A count alone does not prove correctness;
+independent expectations and boundary cases provide the evidence.
 
 ## Phase 1 correctness evidence
 
@@ -22,7 +25,7 @@ Do not calculate expected values by calling the production functions under test.
 | --- | --- |
 | Input | Empty file/header-only; malformed date; missing/duplicate/unknown columns; missing fields; unsorted/duplicate sessions; NaN/infinity; nonpositive/incoherent OHLC; invalid volume; precision rejection |
 | Strategy | Invalid windows; warm-up; initial ready entry; crossover exit; equality preserves target; no repeated investment/rebalancing; history ends at current close |
-| Execution | Decision T, fill next supplied open; overnight gaps; no pending first-bar order; terminal cancellation; nonpositive/invalid orders; overselling; insufficient cash; zero affordable shares |
+| Execution | Decision T, fill next supplied open; overnight gaps; no pending first-bar order; terminal cancellation; invalid targets/sequences/timing; insufficient cash; zero affordable shares; all-holdings exit |
 | Fees/accounting | Zero/positive/max configured fees; rounding ties; affordability boundary after rounded fee; buy/sell ledger; cash/holdings never negative; final open position |
 | Metrics | No trades; flat path; losses below initial cash; monotonic rise; peak-to-trough drawdown; denominator/initial cash rules |
 | Integration | Full synthetic backtest; exact ledger reference; repeated runs; CLI export and invalid-input exit; no success artifact on failure |
@@ -35,12 +38,14 @@ necessarily changes whether the final pending order is canceled.
 
 Cross-check cash independently: initial cash minus purchase notionals plus sale
 notionals minus charged fees equals final cash. For every equity observation,
-`equity = cash + shares * close`. Keep exact money comparisons separate from
-tolerances for derived floating-point ratios.
+`equity = cash + shares * close`. Return/drawdown are exact `Fraction` values;
+JSON rounds those ratios half-even to twelve places. Accounting remains exact.
 
-An illustrative reference case is in the
-[technical explanation](technical-explanation.md). It is arithmetic, not evidence
-that an engine has been implemented or tested.
+The hand-calculated SMA case is in the [technical explanation](technical-explanation.md)
+and [Phase 1 report](phase-1-report.md). `test_simulation.py` asserts its complete
+ledger and equity path. Affordability additionally checks 2,928 small combinations
+against exhaustive quantities and independent `Fraction` rounding. This bounded
+enumeration checks fee boundaries, not every possible large integer input.
 
 ## Later backend and reliability checks
 

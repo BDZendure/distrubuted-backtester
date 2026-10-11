@@ -1,6 +1,7 @@
 # ADR 0003: Separate semantic results from execution observations
 
-**Status:** Proposed for Phases 1-5; implementation awaits the respective gates.
+**Status:** Phase 1 semantic-result separation accepted and implemented.
+Identity, backends, and durable commits for Phases 2-5 remain proposed.
 
 **Date:** 2026-10-10.
 
@@ -16,6 +17,12 @@ Semantic results contain simulation inputs/provenance, fills, order outcomes,
 equity, and metrics. Operational metadata contains elapsed time, host, backend,
 worker, attempt, and observed timestamps. Compare canonical semantic results
 across backends; keep operational observations for diagnostics and benchmarks.
+
+Phase 1 exports sorted canonical JSON with exact money and explicitly rounded
+ratios. Release/semantics labels identify the implemented model but do not hash
+editable source code. Phase 2 manifests must record exact source revision and
+environment. Only the built-in SMA has fully captured strategy parameters in
+Phase 1; custom testing hooks cannot export results without supported provenance.
 
 In Phase 2, derive stable job IDs from canonical config, dataset byte digest and
 policy, engine/strategy identity, and schema version. Deliver outcomes incrementally;

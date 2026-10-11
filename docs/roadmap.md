@@ -5,6 +5,10 @@ behavior, architecture, actual checks, measured performance if applicable,
 limitations, reproduction commands, engineering lessons, and the next proposal.
 Explicit user approval is required before starting the following phase.
 
+**Current status:** Phases 0 and 1 completed. Phase 1 was explicitly approved and
+its [report](phase-1-report.md) records validation. Phase 2 has not started and
+requires new explicit approval.
+
 ## Phase 0: Architecture and repository setup
 
 **Dependency:** Existing repository only.

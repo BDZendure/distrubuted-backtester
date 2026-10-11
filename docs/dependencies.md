@@ -1,6 +1,6 @@
 # Dependency plan
 
-## Phase 0 environment
+## Current Phase 1 environment
 
 Runtime dependencies are empty. Development/build tools are declared and pinned
 in `pyproject.toml`; installation uses a repository-local virtual environment.
@@ -19,7 +19,8 @@ and exact Python/OS versions for benchmark evidence; adopt a complete environmen
 lock before making reproducible performance comparisons in Phase 2.
 
 The CI Python matrix is 3.12 and 3.14. Local Phase 0 validation uses the available
-Python 3.14 interpreter; CI configuration is not proof of an observed Python 3.12 run.
+Python 3.14 interpreter, as does Phase 1; CI configuration is not proof of an
+observed Python 3.12 run.
 Future optional libraries may impose narrower interpreter compatibility and must
 be verified at adoption time.
 
@@ -27,7 +28,7 @@ be verified at adoption time.
 
 | Phase | Dependencies to evaluate | Rationale |
 | --- | --- | --- |
-| 1 | Standard-library `csv`, `decimal` at parsing boundaries, `argparse`, `json`, `hashlib`; NumPy only if a demonstrated numerical need warrants it | Exact small synthetic simulations do not need a dataframe framework |
+| 1 (implemented) | Standard-library `csv`, exact integer text parsing, `fractions`, `argparse`, `json`, `hashlib`, filesystem publication | No runtime dependency added; exact accounting needs no dataframe framework |
 | 2 | Standard-library `concurrent.futures`, `multiprocessing`; a measurement tool such as psutil if needed | Local CPU execution and whole-process memory measurement |
 | 3 | Ray as an optional extra | Distributed scheduling and data placement |
 | 4 | Standard-library SQLite candidate | Atomic lifecycle/result commits for a single coordinator |

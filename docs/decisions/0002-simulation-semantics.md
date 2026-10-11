@@ -1,6 +1,6 @@
 # ADR 0002: Daily timing, raw prices, and exact accounting
 
-**Status:** Proposed for Phase 1; implementation awaits approval.
+**Status:** Accepted for Phase 1 after explicit checkpoint approval; implemented.
 
 **Date:** 2026-10-10.
 
