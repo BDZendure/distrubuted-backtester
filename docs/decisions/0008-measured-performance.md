@@ -1,7 +1,6 @@
 # ADR 0008: Profile first and preserve complete simulation semantics
 
-Status: accepted for the approved Phase 6 design; optimization acceptance depends
-on recorded measurements. Date: 2026-10-10.
+Status: accepted and implemented in Phase 6. Date: 2026-10-10.
 
 ## Context
 
@@ -50,3 +49,17 @@ RSS/USS and unavailable coverage retain their existing measurement boundaries.
 Use raw repetitions, medians and ranges; no linear-scaling, cold-disk or network
 claim follows from one-machine synthetic workloads. Preserve unsuccessful findings
 and reproduction commands. Stop after Phase 6 until Phase 7 is explicitly approved.
+
+
+## Recorded acceptance
+
+The unchanged algorithm was frozen at clean commit `58837ac`; the accepted
+candidate is `df294d4`. All 24 CPU/allocation/timing reports agree on complete
+results. Native bounded slicing beat a plausible bounded generator; exact
+integer drawdown comparison improved both measured sequential scopes. Peak
+traced memory did not materially improve. Detailed measurements and the
+[before/after backend results](../benchmarks/phase-6/results.md) preserve raw
+samples, source identities, mixed scaling outcomes and unavailable private
+memory. Ray's existing bundled metadata path is exposed identically before all
+benchmark processes, preserving exact parent/child environment verification.
+No numerical, strategy, scheduling, storage or execution-policy contract changed.

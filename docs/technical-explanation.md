@@ -6,7 +6,7 @@ The Phase 1 engine implements a deterministic daily backtester for one asset,
 USD, whole shares, and long-only targets. Phase 2 adds immutable jobs, parameter
 sweeps, sequential and local process backends, incremental detailed export, a
 compact result index, and a benchmark runner. Phase 3 adds optional Ray actors.
-Release `0.6.0` retains strict CSV
+Release `0.7.0` retains strict CSV
 loading, the SMA strategy, next-open execution, exact accounting, return and
 drawdown metrics, and versioned JSON export. Runtime dependencies in
 `pyproject.toml` are empty. CSV parsing, integer arithmetic, `Fraction`, command
@@ -346,7 +346,7 @@ slow 3, initial cash 1000, and fee 0 bps. Positive windows require fast < slow;
 cash must be positive exact micro-USD; fees are integers from 0 to 10000.
 `--output` selects a JSON file, otherwise JSON goes to stdout.
 `--overwrite` permits replacing that file. `backtest --help` explains options;
-top-level `--version` reports the installed release, `0.6.0` for this version. The
+top-level `--version` reports the installed release, `0.7.0` for this version. The
 [beginner guide's option table](clear%20explanation.md#run-the-included-example)
 explains each argument.
 
@@ -407,8 +407,8 @@ support; this implementation does not claim universal filesystem behavior.
 
 ## Release identity and reproducibility limits
 
-For an installation of release `0.6.0`, the engine ID is
-`distributed-backtester/0.6.0:daily-long-only-v1`. The release component comes
+For an installation of release `0.7.0`, the engine ID is
+`distributed-backtester/0.7.0:daily-long-only-v1`. The release component comes
 from installed package metadata; the suffix identifies the declared simulation
 semantics. It is not a source-code hash. Editing code in an editable installation
 can leave the release and engine ID unchanged, so that ID alone does not identify
@@ -860,4 +860,264 @@ The [recorded Phase 5 storage measurements](benchmarks/phase-5/results.md) conta
 file bytes from 4,054,324 to 2,056,839; complete four-job medians were 8.633964 s
 (CSV) and 8.653589 s (Parquet). Warm-read and cache measurements are separate
 operations, not substitutes for end-to-end experiment time. No CPU or allocation
-bottleneck is claimed without the Phase 6 profiling work.
+bottleneck follows from those storage measurements alone. Phase 6 now provides
+scoped CPU and live-allocation evidence; see the
+[profiling and optimization section](#phase-6-profiling-and-measured-python-optimizations)
+and [performance instructions](performance.md). Its final backend comparison
+is complete.
+
+## Phase 6: profiling and measured Python optimizations
+
+Phase 6 provides standard-library profiling, uninstrumented scoped timing, and
+verified comparison of retained fresh-process benchmark roots. Two focused
+Python changes are accepted after independent review. Final local verification
+recorded 1,397 tests passing in 139.41 seconds and full Ruff/format/mypy checks
+passing. Final fresh-process matrices passed complete-result comparison.
+
+| Phase 6 module | Responsibility |
+| --- | --- |
+| [`profiling.py`](../src/distributed_backtester/profiling.py) | Deterministic scoped CPU, traced-live-allocation, and timing reports with complete-result verification |
+| [`performance.py`](../src/distributed_backtester/performance.py) | Cross-revision verification and recomputed summaries over retained `ray_benchmark` roots |
+| `models.py` | Bounded native history slicing with custom-sequence/subclass fallback |
+| `metrics.py` | Exact integer drawdown comparisons with final rational construction |
+
+### Profiling API and module CLI
+
+```python
+profile_workload(
+    output: Path, *,
+    bars: int,
+    jobs: int,
+    kind: Literal["cpu", "memory", "timing"],
+    scope: Literal["simulation", "experiment"] = "simulation",
+    repetitions: int = 1,
+    seed: int = 1729,
+) -> dict[str, Any]
+
+compare_benchmarks(
+    baseline: Path, candidate: Path, output: Path
+) -> dict[str, Any]
+```
+
+```bash
+python -m distributed_backtester.profiling run \
+  --bars 65536 --jobs 4 --seed 1729 \
+  --kind cpu --scope simulation \
+  --output-dir /private/tmp/phase6-technical-cpu-simulation
+
+python -m distributed_backtester.profiling run \
+  --bars 65536 --jobs 4 --seed 1729 \
+  --kind memory --scope experiment \
+  --output-dir /private/tmp/phase6-technical-memory-experiment
+
+python -m distributed_backtester.profiling run \
+  --bars 65536 --jobs 4 --seed 1729 \
+  --kind timing --scope experiment --repetitions 5 \
+  --output-dir /private/tmp/phase6-technical-timing-experiment
+```
+
+CPU and memory require one repetition; timing accepts positive repetitions.
+The final output directory must be fresh and outside the source checkout and
+installed package. The profiler intentionally rejects checkout-contained output.
+Use absolute canonical private paths. With `tempfile.mkdtemp`, resolve the
+created parent using `Path(...).resolve()` and pass a new child path to the tool.
+Neither the package nor the generated CSV may change during a measurement.
+
+| Scope | Measured work | Work outside the measurement |
+| --- | --- | --- |
+| `simulation` | Fresh sequential `run_backtest` calls; complete results retained through measurement | Synthetic generation, CSV load, independent result conversion/verification/hash, report publication |
+| `experiment` | CSV load, job construction, sequential simulation, detailed export, finalization | Synthetic generation, independent complete-snapshot verification/result hash, report publication |
+
+Each repetition uses the same interpreter. Startup/import time and process/Ray
+execution are outside both scopes. Caches are uncontrolled; the profiling CLI
+has no separately excluded warmup. Timing uses `perf_counter` with no cProfile
+or tracemalloc instrumentation. Active caller instrumentation is rejected for
+the relevant kind, including a trace callback for timing.
+
+All kinds record `process_time` as `cpu_seconds` for this interpreter's process,
+with the corresponding own-process scope. The RSS observation is
+`resource.getrusage(RUSAGE_SELF).ru_maxrss` normalized where supported: an
+own-process lifetime high water, not a workload-only peak or worker aggregate.
+
+CPU instrumentation records raw `run-1.pstats` and functions with filename,
+line, name, primitive/total calls, self seconds, and cumulative seconds.
+Cumulative time includes subcalls. History access is nested in SMA evaluation,
+and both are nested in the simulation. Those durations overlap and cannot be
+summed; instrumented durations are not unprofiled throughput.
+
+Memory instrumentation captures `current_traced_bytes` and `peak_traced_bytes`
+before the final snapshot, plus before/after `live_differences` grouped by
+traceback. Differences retain net `size_diff_bytes`/`count_diff` and the final
+live size/count. They describe surviving traced Python allocations, not all
+allocation traffic, native allocations, private memory, object-store usage,
+or aggregate worker memory. Only the tracer started by this run is stopped.
+
+Simulation retains all complete result objects for hashing after measurement,
+but tracing starts after CSV loading. Experiment result retention follows the
+existing sequential export/release path. Current-byte counts across these
+scopes therefore answer different questions. RSS includes interpreter setup,
+instrumentation, and earlier work; it cannot be treated as an operation delta.
+
+### Verification and failure contract
+
+Reports retain implementation/environment, method, workload/config/data
+digests, raw runs, source/data guards, status, and complete-result digests.
+Simulation hashes complete `result_to_dict` records in canonical config order.
+Experiment consumes a validating complete snapshot, checks expected success,
+identity, data/config membership, and hashes those same complete result records.
+
+Every repetition must produce the same complete result; source and generated
+data are rechecked outside the timed operation. A terminal failure attempts
+atomic failed-report publication without claiming a successful result hash.
+The primary exception survives instrumentation cleanup or report-write errors;
+secondary diagnostics are retained where possible. An unwritable output can
+prevent report publication. Known CLI validation/file/runtime errors return 2;
+successful completion returns 0.
+
+### Selected history and metric changes
+
+For exact `CloseHistory` with exact built-in list/tuple backing, slicing uses:
+
+```python
+start, stop, step = index.indices(self._length)
+indices = range(start, stop, step)
+if not indices:
+    return ()
+end = None if step < 0 and stop == -1 else stop
+return tuple(self._observations[start:end:step])
+```
+
+Normalization uses the view's captured prefix length, preserving negative
+indices, strides, reverse slices, empty slices, and retained-view future bounds.
+The before-zero reverse stop needs `None` for backing-sequence slicing; a
+literal `-1` stop would be interpreted relative to that sequence's end.
+Custom sequences, backing subclasses, and `CloseHistory` subclasses retain
+`tuple(self[i] for i in indices)`. This is a focused fast path for built-in
+operations, without changing the supported strategy boundary.
+
+The evaluated generator alternative used the normalized bounded backing indices
+and avoided repeated view indexing. It improved scoped timing over the original
+but was slower than native slicing on the measured workload, so it was not
+selected. "Native" refers to Python's built-in list/tuple operation; no C++
+extension or new runtime dependency was introduced.
+
+Drawdown retains a positive running peak anchored to initial cash and a best
+numerator/denominator. For each validated equity point, use the exact comparison
+`loss * best_denominator > best_numerator * peak`, retaining the winning pair.
+Only the final maximum drawdown needs `Fraction` reduction. Total return still
+uses `Fraction`, and the public rational/money formatting, per-point validation,
+fee totals, and fill counts preserve their existing contracts.
+
+### Scoped measurements and revision identities
+
+Four variants, three kinds, and two scopes yield 24 reports at
+`/private/tmp/phase6-evidence/{baseline,generator,native-history,optimized}-{cpu,memory,timing}-{simulation,experiment}/report.json`.
+All record source unchanged per run and the same workload/full-result hashes.
+The shared complete-result digest is
+`ab780eb44724aa83ec754ab5c0552ee845bbde2a9486d090a5a8e09797dbbad9`.
+The workload has 65,536 bars, four distinct generated jobs, seed 1729, 10 bps,
+and `BENCH/raw`; each timing report retains five uninstrumented repetitions.
+
+| Variant | Simulation median seconds | Sequential experiment median seconds |
+| --- | --- | --- |
+| Original algorithm | 0.975629291991936 | 1.903223999979673 |
+| Bounded generator alternative | 0.8719195839948952 | 1.8493130419810768 |
+| Native history slicing | 0.8051267090195324 | 1.7660370000230614 |
+| Native slicing plus integer drawdown comparisons | 0.6699892920150887 | 1.6521307920047548 |
+
+These medians use in-process scoped boundaries. They are not final
+fresh-process sequential/process/Ray medians. Single traced-memory observations
+show nearly unchanged retained/peak bytes, so there is no material retained-memory
+or total-allocation reduction claim.
+
+The accepted clean baseline is `58837ac10216dcc2379d0b7ef0f5f3779466e4f7`,
+with package SHA-256
+`ab0c29cffd82af10c03146da8182e025fa11d114c328c09a3bb0b06eb303a789`.
+The accepted clean candidate is `df294d4788673e0180d0dc67715c955407a95372`,
+with package SHA-256
+`16a1a54602a060cea2fddaaae827b9aff99d87ccd5fbb6761a8b1731a5b834ad`,
+matching the optimized scoped reports. Both wheels contain 42 package files,
+use release `0.7.0`, and were installed offline into separate sites with package
+bytes matching the archives. Retain build-commit/clean-state records separately;
+automatic Git fields are unavailable for these wheel installations.
+
+### Fresh-process cross-revision comparison
+
+Use the same Python executable and dependency environment for both archived
+wheels. Select their separate target sites via `PYTHONPATH`, and invoke
+`python -m distributed_backtester.ray_benchmark run`. Both producer commands
+must receive **absolute canonical output roots**. Use a fresh parent resolved
+with `Path(tempfile.mkdtemp(dir="/private/tmp")).resolve()`, with new child roots.
+
+The comparer rejects symlink parents, including macOS's `/tmp` alias, and checks
+each retained trial command against its root. `ray_benchmark` accepts relative
+paths for general use, but a root produced with relative captured commands is
+not valid for this cross-revision comparison. Resolving only at comparison time
+does not repair that command mismatch.
+
+The first small pair is excluded pilot evidence at
+`docs/benchmarks/phase-6/pilots/environment-preflight.json`. Ray import inserts its bundled
+`thirdparty_files` path into `sys.path`, exposing `colorama==0.4.6` metadata
+after the parent header capture. The comparer correctly rejected the resulting
+parent/child distribution mismatch. This was an environment-record mismatch,
+not evidence of an economic-output difference.
+
+For controlled formal reruns, derive Ray's vendor path without importing Ray:
+`Path(importlib.util.find_spec("ray").origin).resolve().parent / "thirdparty_files"`,
+then resolve the directory. Include that identical directory on `PYTHONPATH`
+alongside either immutable wheel site before all parent/child processes start.
+Verify `capture_environment()["distributions"]` is identical before/after Ray
+import for each site. No package source changes or dependency installs were
+introduced for this control; the `ab0c29...` and `16a1a5...` package hashes and
+accepted commits remain unchanged. Final evidence uses
+`baseline-controlled`/`candidate-controlled` roots with absolute canonical
+producer paths.
+
+The formal matrix uses 256 bars/128 jobs and 16,384 bars/32 jobs, with seed 1729,
+sequential plus process-2/4/8 and Ray-2/4/8. Each root has seven configurations,
+one excluded warmup and three timed trials per configuration: 28 trials per
+root. Both comparisons verified all 112 complete trials. The sequential median fell
+18.30% for small and 30.20% for substantial inputs; substantial multiprocessing
+was effectively unchanged and Ray medians increased 1.30-7.05%. These are local
+observations with three samples/configuration and consecutive revision order,
+not proof of improved parallel throughput.
+
+The fresh-process timer includes startup/imports, data load, jobs, worker/owned
+local cluster setup, placement/readiness, simulation, full export/finalization,
+backend shutdown, and child exit. It excludes synthetic generation, parent
+expected-manifest capture, post-exit validation and orphan cleanup. Memory
+inventory excludes the observer; concurrent sampling can affect wall time. Rotating order and fresh processes do not establish a cold OS cache,
+prestarted-cluster throughput, or multiple-machine performance.
+
+Compare the retained roots with
+`python -m distributed_backtester.performance compare --baseline ABS_BASELINE_ROOT --candidate ABS_CANDIDATE_ROOT --output ABS_COMPARISON_FILE`.
+Use new canonical output outside both roots and the installed package.
+Do not discard trial details; the comparer requires all warmup/timed artifacts.
+
+Before publishing, comparison rereads input bytes, expected manifests, all
+successful full snapshots, and artifact digests. It verifies workload/method,
+repetition/config membership, resource policies, captured commands, producer
+identity, and parent/child interpreter/dependency environment. Each producer's
+implementation-dependent job and experiment IDs are independently validated.
+Complete results are compared by canonical configuration; only a validated
+engine release identifier is normalized when needed. All economic records,
+dataset provenance, strategy/accounting policies, and detailed output must agree.
+
+Summaries are recomputed from raw timed samples. Jobs/sec is jobs divided by
+median duration; backend speedup uses that revision's sequential median;
+parallel efficiency divides backend speedup by workers. Optimization speedup
+compares baseline/candidate medians for the same configuration. These are
+different ratios. Failed/incomplete, discarded, tampered, mismatched, or
+semantically divergent inputs are refused.
+
+The harness retains per-process RSS without summing shared mappings. Aggregate
+private USS requires complete owned inventory and successful reads; missing
+actor coverage or denied reads leave it null. Sampled peaks can miss brief
+services, live object-store usage is unobserved, and reserved capacity or
+serialized dataset size is not physical memory. Preserve unavailable coverage
+rather than filling it with own-process profiler RSS.
+
+See [performance instructions and raw evidence](performance.md) for exact
+ranges, CPU/memory observations, canonical wheel/matrix reproduction commands,
+and the completed backend table, plus
+[ADR 0008](decisions/0008-measured-performance.md) for the accepted design.

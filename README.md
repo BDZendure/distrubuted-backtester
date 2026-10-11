@@ -4,14 +4,15 @@ A portfolio engineering project for reproducible strategy simulations, local CPU
 parallelism, and Ray execution. The focus is correct event
 timing, exact accounting, explicit failure behavior, and measured performance.
 
-**Current stage: Phase 5, versioned storage and results analysis, verified locally.** Run a
+**Current stage: Phase 6, performance engineering, verified locally.** Run a
 deterministic daily SMA backtest, or a parameter sweep through sequential, spawn
 process, or Ray backends.
 Stable jobs, bounded submissions, explicit failures, incremental result export,
 and reproducible benchmark measurements extend the Phase 1 engine.
 Ray is optional. Durable Ray sweeps add journaled retries, deadlines, and resume.
 Optional Parquet inputs preserve exact prices. DuckDB imports verified experiment
-snapshots for analysis. Phase 6 requires explicit approval.
+snapshots for analysis. CPU/allocation profiles and exact Python optimizations
+add measured performance evidence; Phase 7 requires explicit approval.
 
 ## Start with the explanations
 
@@ -27,6 +28,9 @@ snapshots for analysis. Phase 6 requires explicit approval.
   [benchmark methodology](docs/benchmarking.md), and [dependency plan](docs/dependencies.md).
 - [Storage and results commands](docs/storage.md), including version identifiers,
   the verified cache, and authoritative journal imports.
+- [Phase 6 performance instructions](docs/performance.md),
+  [completion report](docs/phase-6-report.md), and
+  [before/after measurements](docs/benchmarks/phase-6/results.md).
 - [Phase 5 completion report](docs/phase-5-report.md) and
   [storage measurements](docs/benchmarks/phase-5/results.md), with raw repetitions
   and full-result correctness checks.
@@ -264,11 +268,11 @@ python -m build
 Check the built wheel in a fresh environment:
 
 ```bash
-python -m venv .venv-wheel-phase4
-.venv-wheel-phase4/bin/python -m pip install --no-index --no-deps --force-reinstall \
-  dist/distributed_backtester-0.6.0-py3-none-any.whl
-wheel_python="$PWD/.venv-wheel-phase4/bin/python"
-wheel_cli="$PWD/.venv-wheel-phase4/bin/distributed-backtester"
+python -m venv .venv-wheel-phase6
+.venv-wheel-phase6/bin/python -m pip install --no-index --no-deps --force-reinstall \
+  dist/distributed_backtester-0.7.0-py3-none-any.whl
+wheel_python="$PWD/.venv-wheel-phase6/bin/python"
+wheel_cli="$PWD/.venv-wheel-phase6/bin/distributed-backtester"
 sample_data="$PWD/examples/sma.csv"
 (cd /tmp && "$wheel_python" -I -c "import distributed_backtester")
 (cd /tmp && "$wheel_cli" backtest --data "$sample_data" --symbol SYNTH \
@@ -281,7 +285,7 @@ records what was actually executed locally and what remains unobserved remotely.
 
 ## Scope and limitations
 
-Later phases add profiling, measured optimizations, and operational tooling.
+Later phases add operational tooling and final portfolio documentation.
 Local measurements describe this host and
 workloads; they do not establish cross-machine scaling or production readiness.
 

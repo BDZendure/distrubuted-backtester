@@ -156,13 +156,13 @@ No change is selected until the accepted profiles establish its cost.
 - [x] Measure B separately against A, verify complete results and review.
 - [x] Evaluate at least one profile-supported alternative and retain measured
   evidence whether accepted or rejected. Do not introduce C++ without justification.
-- [ ] Freeze the accepted candidate, archive/install its wheel and verify source.
-- [ ] Run small and substantial fresh-process comparisons with one warmup and three
+- [x] Freeze the accepted candidate, archive/install its wheel and verify source.
+- [x] Run small and substantial fresh-process comparisons with one warmup and three
   timed repetitions/configuration. Use sequential, process-2/4/8 and Ray-2/4/8 where
   available, same workload/seed/resources and complete output. Retain detailed
   artifacts until cross-revision verification; source identity changes are explicit.
-- [ ] Compare baseline/candidate economic results and raw times using Task 2.
-- [ ] Run complete correctness/fault/backend suite, example CLI, lint/format/mypy,
+- [x] Compare baseline/candidate economic results and raw times using Task 2.
+- [x] Run complete correctness/fault/backend suite, example CLI, lint/format/mypy,
   dependency and distribution checks, isolated installation and documentation links.
 
 ## Task 4: Evidence and checkpoint
@@ -171,14 +171,31 @@ Files: `docs/benchmarks/phase-6/`, `requirements/performance-benchmark.lock`,
 `docs/performance.md`, `docs/phase-6-report.md`, README, architecture, roadmap,
 beginner/technical guides, testing/benchmarking and decisions index/ADR 0008.
 
-- [ ] Record hardware/software, workload sizes/seed, full source/config digests,
+- [x] Record hardware/software, workload sizes/seed, full source/config digests,
   raw repetitions, CPU and retained/peak allocation evidence, runtime/jobs per
   second/speedup/efficiency, and memory availability with exact scope.
-- [ ] Explain successful and unsuccessful experiments without extrapolated claims.
-- [ ] Synchronize both beginner and technical explanations and reproduction commands.
-- [ ] Obtain final independent implementation/evidence review, fix actual findings,
+- [x] Explain successful and unsuccessful experiments without extrapolated claims.
+- [x] Synchronize both beginner and technical explanations and reproduction commands.
+- [x] Obtain final independent implementation/evidence review, fix actual findings,
   rebuild/verify archives and make local milestone commits.
-- [ ] Publish the nine-section Phase 6 completion report and stop.
+- [x] Publish the nine-section Phase 6 completion report and stop.
 - [ ] Obtain explicit approval before Phase 7.
 
 Optimization evidence before formal backend comparisons: all 24 CPU/memory/timing reports and 56 repetitions agree on complete results and workload hashes. Five-repeat simulation medians: baseline 0.975629 s, bounded generator 0.871920 s, native history 0.805127 s, combined exact drawdown 0.669989 s. Complete experiment medians: 1.903224 / 1.849313 / 1.766037 / 1.652131 s respectively. Both narrow changes received independent acceptance; traced memory peaks did not materially improve. Full optimized native suite: 1,397 passed in 139.17 s.
+
+Final controlled measurements: 112 full trial snapshots verified across both revisions
+and all backends; 8,960 executions including warmups/repetitions, with 128 or 32
+unique jobs per experiment. Sequential small/substantial median reductions 18.30% /
+30.20%; parallel changes were small and mixed. All primary private USS
+peaks were unavailable. The first small pair was excluded after exact environment
+verification caught Ray's bundled Colorama metadata exposure; identical vendor
+path pre-exposure passed preflight without source/dependency changes. Final native
+repeat: 1,397 passed in 139.41 s; Ruff/format/mypy/pip check and fresh bare-wheel
+core plus six profile modes passed. Raw reports, pstats, identities and the rejected
+alternative were kept.
+
+Final independent integration/evidence review accepted Phase 6 without blocking
+findings. The minor ADR index table rendering issue was corrected. Final archives
+were checked against current package/document bytes, and local links resolved.
+The nine-section report is [published](phase-6-report.md); Phase 7 requires a
+separate explicit approval.

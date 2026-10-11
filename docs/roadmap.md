@@ -15,7 +15,10 @@ and is verified locally, including actual Ray fault recovery and coordinator
 restart. Its [report](phase-4-report.md) records 897 passing tests and CLI export
 parity/repair evidence. Phase 5 was explicitly approved and is verified locally.
 Its [report](phase-5-report.md), [storage measurements](benchmarks/phase-5/results.md),
-and [completed plan](phase-5-plan.md) record the evidence. Phase 6 remains unapproved.
+and [completed plan](phase-5-plan.md) record the evidence. Phase 6 was explicitly approved and its measured Python
+optimizations, profiling and verified comparison are recorded in the
+[Phase 6 report](phase-6-report.md), [results](benchmarks/phase-6/results.md) and
+[completed plan](phase-6-plan.md). Phase 7 remains unapproved.
 
 ## Phase 0: Architecture and repository setup
 

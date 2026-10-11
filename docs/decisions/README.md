@@ -13,8 +13,7 @@ decisions become accepted only when the relevant implementation phase is approve
 | [0005: Ray actor execution](0005-ray-actor-execution.md) | Accepted for Phase 3 | Optional actor pool, resources, data placement, ownership, measurement scope |
 | [0006: Durable scheduling](0006-durable-scheduling.md) | Accepted for Phase 4 | Coordinator SQLite journal, bounded attempts, fencing, recovery, and export repair |
 | [0007: Versioned storage and analytics](0007-versioned-storage-and-analytics.md) | Accepted for Phase 5 | Exact Parquet, verified cache, analytical snapshots, and measurement boundaries |
-
-| [0008: Measured performance](0008-measured-performance.md) | Accepted for Phase 6 design | Scoped profiling, immutable wheel comparisons, full economics verification |
+| [0008: Measured performance](0008-measured-performance.md) | Accepted and implemented in Phase 6 | Scoped profiling, immutable wheel comparisons, full economics verification |
 
 Update status when a checkpoint is approved. Supersede a consequential decision
 with a new ADR and link the records; preserve the reasoning for interview review.

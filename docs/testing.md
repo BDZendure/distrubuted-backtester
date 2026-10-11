@@ -168,3 +168,21 @@ CI enables that case in the main checks job, while a separate job installs Ray
 and exercises its integration/fault tests. Remote CI outcomes are not claimed
 from local execution. See the [completion report](phase-5-report.md) for exact
 commands, isolated wheel checks, and source identity.
+
+
+## Phase 6 optimization and measurement validation
+
+`test_models.py` checks 21,294 bounded-slice oracle cases, reverse/empty old views
+with appended future data, custom sequence/history overrides and a deterministic
+recursive-access count. `test_metrics.py` compares exact fractions on seeded
+paths, ties, zero equity, huge integers and late invalid values. Fraction
+construction counts are asserted without a timing threshold.
+
+`test_profiling.py` checks measurement boundaries, complete-result hashes,
+repetition equality, input/source drift, conflicting caller instrumentation,
+primary/secondary failures and owned tracer cleanup. `test_performance.py` uses
+explicitly synthetic durations over real exported artifacts for ratio math,
+full-trace differences despite equal final metrics, release normalization,
+metadata/resources, completeness and protected publication. These fixture times
+are not benchmark evidence. Real measurements and full backend verification are
+[recorded separately](benchmarks/phase-6/results.md).

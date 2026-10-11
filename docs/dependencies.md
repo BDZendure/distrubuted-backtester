@@ -98,3 +98,10 @@ CPython 3.14.6/macOS arm64 environment. The exact observed environment is in
 version-snapshot limitations as the earlier locks. Dynamic native APIs are
 restricted to adapter modules; strict domain types and decoded values remain
 validated outside them. No pandas or NumPy dependency was needed in this phase.
+
+
+Phase 6 adds no dependency. cProfile/pstats/tracemalloc and integer arithmetic
+come from Python. The existing Ray/psutil pins serve backend measurement; the
+[observed version snapshot](../requirements/performance-benchmark.lock) records
+the environment and Ray's bundled metadata control. C++ and new array libraries
+were not introduced without measured justification.

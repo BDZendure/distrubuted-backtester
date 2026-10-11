@@ -10,7 +10,8 @@ backends, initialized workers, incremental export, and a benchmark harness.
 Phase 3 adds the optional Ray actor pool and an existing-cluster connection.
 Phase 4 adds a local SQLite scheduler, retry policy, and Ray recovery. Phase 5
 adds exact versioned Parquet inputs, explicit verified caching, and DuckDB
-analytical snapshots. See the
+analytical snapshots. Phase 6 adds scoped profiling, full-result comparison,
+bounded native history slicing, and exact integer drawdown comparison. See the
 [Phase 2 report](phase-2-report.md) and [Ray instructions](ray-clusters.md).
 
 The engineering goal is reproducible independent simulations, reliable execution,
@@ -489,3 +490,25 @@ verified cache reuse, repeated sequential experiments, payload size, serializati
 same-host process transfer, and process high-water memory. Fresh processes do not
 evict the filesystem cache. See [storage](storage.md) and
 [ADR 0007](decisions/0007-versioned-storage-and-analytics.md).
+
+
+## Phase 6 implementation: measurement and exact optimization
+
+`profiling.py` separates instrumented CPU/allocation observations from repeated
+uninstrumented simulation/complete-sequential-experiment timings. It verifies
+complete result hashes and frozen source/data; failures preserve their primary
+exception even when observation or publication also fails.
+
+`performance.py` consumes retained outputs from the existing local Ray harness.
+It verifies each producer's manifest, input bytes, full successful snapshots,
+commands, child/parent environment and resource policy before comparing all
+result fields in canonical configuration order. Source-dependent job IDs remain
+independent. Only a validated engine release label may be normalized.
+
+`CloseHistory` uses native slicing only for exact built-in backing and its base
+class, normalized to the captured prefix. Empty/reverse slices and custom
+integer access retain their contracts. Metrics compare drawdown ratios using
+unbounded integer cross products, constructing final exact fractions once.
+The public strategy, worker, scheduler, storage and accounting contracts remain
+compatible. Read [performance](performance.md) and
+[ADR 0008](decisions/0008-measured-performance.md) for measured choices and limits.

@@ -3,7 +3,8 @@
 Phase 2 implements the local harness and publishes
 [recorded results and raw observations](benchmarks/phase-2/results.md). Phase 3 adds
 the owned local Ray comparison harness below. Multiple-machine Ray
-metrics and optimization procedures below remain planned requirements.
+metrics remain planned; Phase 6 implements the profiling and controlled
+optimization procedures in [performance instructions](performance.md).
 Run the harness with `python -m distributed_backtester.benchmark run --help`.
 Optional psutil 7.2.2 is required only for measurement.
 
@@ -209,3 +210,26 @@ Report medians and ranges for small and substantial workloads, and inspect wheth
 row-group settings actually produce different files. File compression does not
 imply smaller Python worker objects or faster complete simulations. See
 [storage commands](storage.md) and [actual Phase 5 results](benchmarks/phase-5/results.md).
+
+
+## Phase 6 paired revisions
+
+[Recorded results](benchmarks/phase-6/results.md) use clean baseline/candidate
+wheels, the same interpreter/dependencies, absolute canonical retained benchmark
+roots, and the existing owned-local observer. Seven configurations include
+sequential and process/Ray workers 2, 4, and 8. Each has one excluded warmup and
+three timed fresh-process repetitions; scoped profiling timings have five
+repetitions with no excluded warmup. Report both median and observed range.
+
+Ray's bundled Colorama metadata is pre-exposed through identical `PYTHONPATH`
+before all parent and child processes. The comparer rejected the uncontrolled
+pilot headers; those reports are explicitly excluded. Import preflight confirms
+metadata stability without installing a new dependency. Performance ratios are
+published only after every full economic result matches across revisions.
+
+CPU seconds and tracemalloc observations cover the profiling interpreter only.
+RSS is its lifetime high water. Aggregate private USS requires complete local
+ownership coverage; unavailable reads remain null. The observer is excluded from
+the memory inventory; concurrent sampling can perturb measured wall time.
+OS caches, CPU scheduling and frequency are uncontrolled. Neither a narrow
+kernel nor a cold local cluster establishes network or production scaling.

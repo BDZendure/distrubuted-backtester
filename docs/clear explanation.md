@@ -8,7 +8,7 @@ The Phase 1 engine implements that replay for one asset, one daily price table,
 and one set of settings at a time. Phase 2 adds parameter sweeps that run many
 independent simulations sequentially or with local worker processes. Phase 3 adds
 Ray workers and connections to an existing cluster. The current package release
-is `0.6.0`.
+is `0.7.0`.
 
 You can run the command below and get a JSON result containing the settings,
 data fingerprint, trades, order outcomes, daily portfolio values, and summary
@@ -462,13 +462,14 @@ for the evidence and limitations.
 
 | Phase | Planned capability |
 | --- | --- |
-| 6 | Profiling and optimizations supported by measured results |
 | 7 | Operational tooling and a reproducible developer environment |
 | 8 | Final documentation and portfolio evidence based on implemented facts |
 
-Those later features are not part of the implemented Phase 5 scope. Phase 4
-recovery does not promise coordinator high availability or recovery after disk loss. Several workers may be slower for small jobs, so scaling claims need
-actual measurements.
+Phase 6 profiling and reviewed Python optimizations are available; the final
+backend comparison is verified. Later planned capabilities need their own
+checkpoint. Phase 4 recovery does not promise coordinator high availability or
+recovery after disk loss. Several workers may be slower for small jobs, so scaling
+claims need actual measurements.
 
 Read the [technical explanation](technical-explanation.md) for the exact module
 interfaces and guarantees, the [Phase 1 plan](phase-1-plan.md) for the accepted
@@ -595,3 +596,141 @@ Our measured larger example made that tradeoff concrete: the CSV used about
 took about 8.6 seconds. Reusing an already checked dataset through the explicit
 cache was much quicker than decoding it again. This does not mean every CLI
 command becomes quicker, because a new command starts a new process.
+
+## Phase 6: finding and reducing repeated work
+
+A **profiler** helps explain where the program spends time or keeps memory.
+A **timing run** measures how long a chosen operation takes. Phase 6 adds a
+separate profiling command and two reviewed Python changes. The measurement
+baseline and accepted candidate both use package release `0.7.0`.
+
+Think of making four calculations from the same price table. One measurement
+starts after the table is ready and stops when all four answers are in memory.
+Another starts when reading the table and stops after saving all answers.
+They measure different amounts of work.
+
+| Profiling scope | What the stopwatch includes |
+| --- | --- |
+| `simulation` | The simulations, keeping their complete answers in memory |
+| `experiment` | Reading the CSV, creating jobs, simulating sequentially, and saving/finalizing the complete experiment |
+
+Both run in one Python process. They do not measure starting Python or starting
+process/Ray workers. Repeated timing runs reuse that interpreter, and the
+operating system's file cache is uncontrolled.
+
+### Try the profiling command
+
+Use Terminal or VS Code's terminal with your Python environment activated:
+
+```bash
+python -m distributed_backtester.profiling run \
+  --bars 65536 --jobs 4 --kind cpu --scope simulation \
+  --output-dir /private/tmp/phase6-guide-cpu-simulation
+
+python -m distributed_backtester.profiling run \
+  --bars 65536 --jobs 4 --kind memory --scope experiment \
+  --output-dir /private/tmp/phase6-guide-memory-experiment
+
+python -m distributed_backtester.profiling run \
+  --bars 65536 --jobs 4 --kind timing --scope experiment --repetitions 5 \
+  --output-dir /private/tmp/phase6-guide-timing-experiment
+```
+
+These commands generate their own deterministic prices. `--bars` is the number
+of price rows and `--jobs` is the number of distinct settings. The default seed,
+1729, makes the same generated workload repeatable. Four generated jobs are not
+necessarily the same four window pairs used in the earlier example sweep.
+
+Every output path must be a new directory outside the checkout. The profiler
+intentionally rejects checkout-contained outputs. The `/private/tmp` examples
+use absolute paths; choose fresh names when repeating them. Do not create the
+final directory before the command. Change `--scope` to try the other boundary,
+and also change the output path. CPU and memory use one repetition; timing can
+use several. No additional profiling library needs to be installed.
+
+Open `report.json` to see the settings, fingerprints, observations, and success
+or failure. CPU also saves `run-1.pstats`. Experiment scope saves detailed
+experiment files. A success report checks complete answers, not only final profit.
+
+| Observation | Simple interpretation |
+| --- | --- |
+| CPU call profile | Which functions ran, how often, and the time attributed to them |
+| Current traced bytes | Python memory still traced at the end |
+| Peak traced bytes | The highest live traced Python memory during the operation |
+| Live snapshot differences | The net change in memory still alive between two snapshots |
+| Timing repetitions | Several stopwatch readings without CPU/allocation profiling |
+
+A function's cumulative CPU profile time includes functions it calls. Those
+entries overlap, so adding them can count the same time twice. Profiling itself
+slows work down; use the separate `timing` readings for scoped runtime comparisons.
+
+Memory snapshots miss objects created and freed between the snapshots. Their
+counts are not the total number of allocations, and tracemalloc does not cover
+all memory used by native libraries. The report's CPU seconds and lifetime peak
+RSS describe this one process, not all workers or the whole Ray cluster.
+Lifetime peak RSS may include earlier setup. Missing observations mean
+unavailable, not zero.
+
+### What changed inside Python
+
+The first change makes slices of recent closing-price history use Python's
+built-in list/tuple slicing when safe. Each history view still remembers how
+much history was available when it was created, including for backward slices.
+It cannot reveal later prices through its supported interface. Other sequence
+types keep the existing fallback.
+
+The second change avoids repeatedly building fractions while finding maximum
+drawdown. To compare `20/100` with `30/120`, compare `20 * 120` with
+`30 * 100`. Since 2,400 is less than 3,000, the second fraction is larger.
+Integer arithmetic makes that comparison exact; the final answer is still an
+exact fraction. Prices, fees, whole shares, decisions, and next-open fills keep
+their existing rules.
+
+"Native slicing" here means Python's existing built-in operation. This project
+did not add C++ or a compiled extension.
+
+### What the scoped measurements showed
+
+On the recorded synthetic workload of 65,536 bars and four jobs, the medians
+of five uninstrumented repetitions were approximately:
+
+| Version tried | Simulation seconds | Sequential experiment seconds |
+| --- | --- | --- |
+| Original algorithm | 0.976 | 1.903 |
+| Bounded generator alternative | 0.872 | 1.849 |
+| Native history slicing | 0.805 | 1.766 |
+| Native slicing plus integer drawdown comparisons | 0.670 | 1.652 |
+
+The generator was faster than the original, but native slicing was faster than
+the generator and was selected. All 24 CPU, memory, and timing reports recorded
+the same full-answer fingerprint and workload. Traced retained/peak memory
+changed very little; the reports do not establish a large memory saving.
+
+These are scoped in-process observations. The separate final comparison uses
+the clean baseline `58837ac` and accepted candidate `df294d4`, installed from
+archived wheels with the same Python/dependencies. It measures fresh processes
+for sequential, process-2/4/8, and Ray-2/4/8. The small workload is 256 bars with
+128 jobs; the substantial workload is 16,384 bars with 32 jobs. Each configuration
+has one excluded warmup and three timed trials. Both full comparisons passed. Sequential runtime fell about 18% on the small
+workload and 30% on the substantial workload. Multiprocessing changed little;
+Ray was slower on the substantial workload. More workers did not automatically
+make the experiment faster.
+
+Before/after benchmark commands must use absolute canonical output roots from
+the start. A canonical path resolves filesystem aliases, such as macOS `/tmp`
+to `/private/tmp`. The comparer checks recorded commands and rejects symlink
+parents. Preserve every detailed answer until that comparison finishes.
+
+The first small benchmark pair was an excluded pilot: Ray made a bundled
+library visible only after the parent had recorded its environment. The strict
+comparison rejected that mismatch. Formal reruns now expose the same Ray bundled
+library directory before both versions start. A preflight checks that the list
+of installed distribution metadata stays identical before and after Ray import.
+This required no package source change or dependency installation. The accepted
+commits and source fingerprints are unchanged. Final results come from the
+verified controlled reruns.
+
+Read [performance instructions and evidence](performance.md) for all six
+profiling combinations, exact raw medians and fingerprints, wheel commands, and
+the completed backend matrix. The [technical guide](technical-explanation.md#phase-6-profiling-and-measured-python-optimizations)
+explains the exact interfaces and comparison checks.
