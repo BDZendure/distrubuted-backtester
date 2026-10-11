@@ -177,7 +177,16 @@ class CloseHistory(Sequence[CloseObservation]):
         self, index: int | slice
     ) -> CloseObservation | tuple[CloseObservation, ...]:
         if isinstance(index, slice):
-            return tuple(self[i] for i in range(*index.indices(self._length)))
+            start, stop, step = index.indices(self._length)
+            indices = range(start, stop, step)
+            if type(self) is CloseHistory and type(self._observations) in (list, tuple):
+                # An empty prefix must never read appended future observations.
+                if not indices:
+                    return ()
+                # A normalized -1 stop means before index 0 for reverse slices.
+                end = None if step < 0 and stop == -1 else stop
+                return tuple(self._observations[start:end:step])
+            return tuple(self[i] for i in indices)
         position = index if index >= 0 else self._length + index
         if not 0 <= position < self._length:
             raise IndexError("close observation outside available history")

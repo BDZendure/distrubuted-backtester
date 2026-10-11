@@ -1,8 +1,9 @@
 """Contracts prevent invalid input before it reaches the simulation."""
 
+from collections.abc import Sequence
 from dataclasses import FrozenInstanceError
 from datetime import date, datetime
-from typing import Literal, cast
+from typing import Literal, SupportsIndex, cast, overload
 
 import pytest
 
@@ -121,3 +122,100 @@ def test_close_history_is_a_read_only_prefix_with_stable_bounds() -> None:
         _ = prefix[1]
     with pytest.raises(IndexError):
         _ = prefix[-2]
+
+
+@pytest.mark.parametrize("tuple_backing", [False, True])
+def test_history_slices_avoid_recursive_integer_bound_checks(
+    tuple_backing: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    original = CloseHistory.__getitem__
+    integer_reads = 0
+
+    def counted(
+        self: CloseHistory, index: int | slice
+    ) -> CloseObservation | tuple[CloseObservation, ...]:
+        nonlocal integer_reads
+        if isinstance(index, int):
+            integer_reads += 1
+        return original(self, index)
+
+    monkeypatch.setattr(CloseHistory, "__getitem__", counted)
+    observations = [CloseObservation(date(2026, 1, 1), i + 1) for i in range(8)]
+    view = CloseHistory(tuple(observations) if tuple_backing else observations)
+    assert view[1:7:2] == tuple(observations[1:7:2])
+    assert integer_reads == 0
+
+
+@pytest.mark.parametrize("length", range(9))
+@pytest.mark.parametrize("tuple_backing", [False, True])
+def test_bounded_slices_match_snapshot_after_future_append(
+    length: int, tuple_backing: bool
+) -> None:
+    observations = [CloseObservation(date(2026, 1, 1), i + 1) for i in range(12)]
+    backing: Sequence[CloseObservation] = (
+        tuple(observations[:length]) if tuple_backing else observations[:length]
+    )
+    view = CloseHistory(backing)
+    expected = tuple(observations[:length])
+    if isinstance(backing, list):
+        backing.extend(observations[length:])
+    bounds = (None, -1000, -12, -9, -2, -1, 0, 1, 2, 8, 9, 12, 1000)
+    for start in bounds:
+        for stop in bounds:
+            for step in (None, -100, -3, -1, 1, 2, 100):
+                selection = slice(start, stop, step)
+                assert view[selection] == expected[selection], (length, selection)
+    with pytest.raises(ValueError):
+        _ = view[::0]
+
+
+def test_history_preserves_custom_list_integer_access() -> None:
+    class IntegerOnly(list[CloseObservation]):
+        @overload
+        def __getitem__(self, index: SupportsIndex) -> CloseObservation: ...
+
+        @overload
+        def __getitem__(self, index: slice) -> list[CloseObservation]: ...
+
+        def __getitem__(
+            self, index: SupportsIndex | slice
+        ) -> CloseObservation | list[CloseObservation]:
+            if isinstance(index, slice):
+                raise AssertionError("custom backing must never receive a slice")
+            return super().__getitem__(index)
+
+    backing = IntegerOnly([CloseObservation(date(2026, 1, 1), i + 1) for i in range(5)])
+    view = CloseHistory(backing)
+    backing.append(CloseObservation(date(2026, 1, 2), 999))
+    assert view[::-1] == tuple(backing[i] for i in range(4, -1, -1))
+    assert view[2:4] == (backing[2], backing[3])
+
+
+def test_history_preserves_generic_sequence_access() -> None:
+    from collections import UserList
+
+    backing = UserList([CloseObservation(date(2026, 1, 1), i + 1) for i in range(5)])
+    view = CloseHistory(backing)
+    backing.append(CloseObservation(date(2026, 1, 2), 999))
+    assert view[::-1] == tuple(backing[i] for i in range(4, -1, -1))
+
+
+def test_history_subclass_keeps_overridden_integer_access() -> None:
+    class AlteredHistory(CloseHistory):
+        @overload
+        def __getitem__(self, index: int) -> CloseObservation: ...
+
+        @overload
+        def __getitem__(self, index: slice) -> tuple[CloseObservation, ...]: ...
+
+        def __getitem__(
+            self, index: int | slice
+        ) -> CloseObservation | tuple[CloseObservation, ...]:
+            if isinstance(index, int):
+                observation = super().__getitem__(index)
+                return CloseObservation(observation.session, observation.close + 1)
+            return super().__getitem__(index)
+
+    backing = [CloseObservation(date(2026, 1, 1), i + 1) for i in range(5)]
+    view = AlteredHistory(backing)
+    assert view[1:4] == tuple(view[i] for i in range(1, 4))

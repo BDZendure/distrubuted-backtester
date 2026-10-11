@@ -136,25 +136,25 @@ Main owns narrow changes and expanded regressions in `models.py`/`metrics.py`,
 `tests/test_models.py`/`tests/test_metrics.py`, and independent reference checks.
 No change is selected until the accepted profiles establish its cost.
 
-- [ ] Commit/build a 0.7.0 measurement baseline with unchanged production algorithm;
+- [x] Commit/build a 0.7.0 measurement baseline with unchanged production algorithm;
   archive/install the wheel to a private site, verifying exact package bytes/SHA.
-- [ ] Capture CPU and Python allocation profiles for simulation and complete
+- [x] Capture CPU and Python allocation profiles for simulation and complete
   sequential experiments; preserve raw JSON and pstats evidence.
-- [ ] Capture uninstrumented repeated timing baselines for each candidate scope.
-- [ ] Candidate A: use bounded native list/tuple slicing in CloseHistory only if
+- [x] Capture uninstrumented repeated timing baselines for each candidate scope.
+- [x] Candidate A: use bounded native list/tuple slicing in CloseHistory only if
   profiles support it. Preserve every slice, future bounds and arbitrary Sequence
   fallback. Write deterministic operation-count and exhaustive semantic tests;
   observe the old implementation fail the operation-count expectation first.
   Evaluate a generator over bounded backing indices before native slicing as a
   plausible allocation-saving alternative; measure both and retain the winner.
-- [ ] Measure A, verify complete results and review before acceptance. Reject or
+- [x] Measure A, verify complete results and review before acceptance. Reject or
   revert it if measurements do not support a useful improvement.
-- [ ] Candidate B: defer Fraction construction in drawdown calculation using exact
+- [x] Candidate B: defer Fraction construction in drawdown calculation using exact
   integer cross products only if supported. Preserve validation and rational output;
   write a Fraction reference, huge values, ties, zero equity and late-invalid cases,
   plus a failing deterministic allocation-count regression before implementation.
-- [ ] Measure B separately against A, verify complete results and review.
-- [ ] Evaluate at least one profile-supported alternative and retain measured
+- [x] Measure B separately against A, verify complete results and review.
+- [x] Evaluate at least one profile-supported alternative and retain measured
   evidence whether accepted or rejected. Do not introduce C++ without justification.
 - [ ] Freeze the accepted candidate, archive/install its wheel and verify source.
 - [ ] Run small and substantial fresh-process comparisons with one warmup and three
@@ -180,3 +180,5 @@ beginner/technical guides, testing/benchmarking and decisions index/ADR 0008.
   rebuild/verify archives and make local milestone commits.
 - [ ] Publish the nine-section Phase 6 completion report and stop.
 - [ ] Obtain explicit approval before Phase 7.
+
+Optimization evidence before formal backend comparisons: all 24 CPU/memory/timing reports and 56 repetitions agree on complete results and workload hashes. Five-repeat simulation medians: baseline 0.975629 s, bounded generator 0.871920 s, native history 0.805127 s, combined exact drawdown 0.669989 s. Complete experiment medians: 1.903224 / 1.849313 / 1.766037 / 1.652131 s respectively. Both narrow changes received independent acceptance; traced memory peaks did not materially improve. Full optimized native suite: 1,397 passed in 139.17 s.
