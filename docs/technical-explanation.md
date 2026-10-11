@@ -22,7 +22,8 @@ The [Phase 1 plan](phase-1-plan.md) defines the engine scope, and the
 [Phase 1 verification report](phase-1-report.md) records the engine evidence;
 the [Phase 2 report](phase-2-report.md) records its parallel execution checks,
 environment, packaging evidence, and limitations. Current operational checks
-are recorded in the [Phase 7 report](phase-7-report.md). This guide
+are recorded in the [Phase 7 report](phase-7-report.md). Final native, installed-wheel
+and documentation checks are recorded in the [Phase 8 report](phase-8-report.md). This guide
 describes implemented contracts; it does not infer verification from a plan or
 quote a provisional test count. See the
 [beginner guide](clear%20explanation.md) for setup and plain-language definitions.
@@ -39,7 +40,8 @@ ARM64 release checks. The [Phase 7 report](phase-7-report.md) and
 [verification record](phase-7-verification.json) record the final checks and
 limits. Remote CI and Linux AMD64 execution remain unobserved. The Phase 6
 measurements remain historical results from archived `0.7.0` wheels and their
-recorded source identities. Phase 8 was explicitly approved for final portfolio documentation.
+recorded source identities. Phase 8 completes the portfolio documentation around
+this unchanged implementation.
 
 ## Actual module boundaries
 

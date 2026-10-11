@@ -1,0 +1,447 @@
+{
+  "application_version": "0.8.0",
+  "branch": "feat/phase-8-portfolio",
+  "candidate_installed_checks": {
+    "core": {
+      "command": "/private/tmp/phase8-core-wheel-env/bin/python -I /Users/blakezhang/Documents/Dev/distrubuted-backtester/scripts/smoke.py --data /Users/blakezhang/Documents/Dev/distrubuted-backtester/examples/sma.csv --output-parent /private/tmp/phase8-core-smoke --timeout 180 --signals",
+      "cwd": "/private/tmp",
+      "exit_code": 0,
+      "report": {
+        "installed": {
+          "package_file": "/private/tmp/phase8-core-wheel-env/lib/python3.14/site-packages/distributed_backtester/__init__.py",
+          "record_file": "/private/tmp/phase8-core-wheel-env/lib/python3.14/site-packages/distributed_backtester-0.8.0.dist-info/RECORD",
+          "recorded_python_files": 46,
+          "uid": 501,
+          "version": "0.8.0"
+        },
+        "ok": true,
+        "ray": false,
+        "schema_version": 1,
+        "semantic_digest": "b3d189adfc79df1c9567cbf09f01b2b9ec96d236c4d83a65d0962fa471584006",
+        "signals": true,
+        "storage": false,
+        "workspace": "/private/tmp/phase8-core-smoke/smoke-dv0rv1vw"
+      },
+      "wheel_scope": "Candidate documentation metadata, exact frozen0.8.0 package bytes; final metadata/archive checked separately."
+    },
+    "runtime": {
+      "command": "/private/tmp/phase8-runtime-wheel-env/bin/python -I /Users/blakezhang/Documents/Dev/distrubuted-backtester/scripts/smoke.py --data /Users/blakezhang/Documents/Dev/distrubuted-backtester/examples/sma.csv --output-parent /private/tmp/phase8-runtime-smoke --timeout 180 --ray --storage --signals",
+      "cwd": "/private/tmp",
+      "exit_code": 0,
+      "report": {
+        "installed": {
+          "package_file": "/private/tmp/phase8-runtime-wheel-env/lib/python3.14/site-packages/distributed_backtester/__init__.py",
+          "record_file": "/private/tmp/phase8-runtime-wheel-env/lib/python3.14/site-packages/distributed_backtester-0.8.0.dist-info/RECORD",
+          "recorded_python_files": 46,
+          "uid": 501,
+          "version": "0.8.0"
+        },
+        "ok": true,
+        "ray": true,
+        "schema_version": 1,
+        "semantic_digest": "b3d189adfc79df1c9567cbf09f01b2b9ec96d236c4d83a65d0962fa471584006",
+        "signals": true,
+        "storage": true,
+        "workspace": "/private/tmp/phase8-runtime-smoke/smoke-kq5s9xu0"
+      },
+      "wheel_scope": "Candidate documentation metadata, exact frozen0.8.0 package bytes; final metadata/archive checked separately."
+    }
+  },
+  "checks": [
+    {
+      "command": "PHASE5_STORAGE_CHILD_TESTS=1 .venv/bin/python -m pytest -q",
+      "elapsed_seconds": 226.08,
+      "exit_code": 0,
+      "passed": 1928,
+      "scope": "Complete frozen-source suite, including actual fault and storage tests."
+    },
+    {
+      "command": ".venv/bin/python -m ruff check .",
+      "exit_code": 0,
+      "result": "All checks passed"
+    },
+    {
+      "command": ".venv/bin/python -m ruff format --check .",
+      "exit_code": 0,
+      "result": "157 files already formatted",
+      "scope": "Final static check at the recorded working tree; count includes all files Ruff discovered."
+    },
+    {
+      "command": ".venv/bin/python -m mypy",
+      "exit_code": 0,
+      "source_files": 102
+    },
+    {
+      "command": ".venv/bin/python -m pip check",
+      "exit_code": 0,
+      "result": "No broken requirements found"
+    }
+  ],
+  "clean_source_walkthrough": {
+    "commands": [
+      {
+        "command": "python3 -m venv .venv-core",
+        "cwd": "/private/tmp/phase8-clean-source-final/distributed_backtester-0.8.0",
+        "exit_code": 0
+      },
+      {
+        "command": ".venv-core/bin/python -m pip install --editable .",
+        "cwd": "/private/tmp/phase8-clean-source-final/distributed_backtester-0.8.0",
+        "exit_code": 0
+      },
+      {
+        "command": ".venv-core/bin/python -m pip check",
+        "cwd": "/private/tmp/phase8-clean-source-final/distributed_backtester-0.8.0",
+        "exit_code": 0
+      },
+      {
+        "command": ".venv-core/bin/distributed-backtester --version",
+        "cwd": "/private/tmp/phase8-clean-source-final/distributed_backtester-0.8.0",
+        "exit_code": 0
+      },
+      {
+        "command": ".venv-core/bin/distributed-backtester backtest --config examples/backtest.toml --fee-bps 10",
+        "cwd": "/private/tmp/phase8-clean-source-final/distributed_backtester-0.8.0",
+        "exit_code": 0
+      },
+      {
+        "command": "mkdir -p artifacts",
+        "cwd": "/private/tmp/phase8-clean-source-final/distributed_backtester-0.8.0",
+        "exit_code": 0
+      },
+      {
+        "command": ".venv-core/bin/distributed-backtester backtest --config examples/backtest.toml --fee-bps 10 --output artifacts/reference.json",
+        "cwd": "/private/tmp/phase8-clean-source-final/distributed_backtester-0.8.0",
+        "exit_code": 0
+      },
+      {
+        "command": ".venv-core/bin/distributed-backtester sweep --config examples/sweep.toml --fee-bps 10 --backend process --workers 2 --output-dir artifacts/process",
+        "cwd": "/private/tmp/phase8-clean-source-final/distributed_backtester-0.8.0",
+        "exit_code": 0
+      },
+      {
+        "command": ".venv-core/bin/distributed-backtester status --output-dir artifacts/process",
+        "cwd": "/private/tmp/phase8-clean-source-final/distributed_backtester-0.8.0",
+        "exit_code": 0
+      }
+    ],
+    "failures": 0,
+    "ok": true,
+    "reference_metrics": {
+      "fill_count": 2,
+      "final_equity": "749.257000",
+      "maximum_drawdown": "0.250743000000",
+      "total_fees": "1.743000",
+      "total_return": "-0.250743000000"
+    },
+    "schema_version": 1,
+    "scope": "Exact README core example/process commands and reproduction export from a clean unpacked source archive, not a Git clone.",
+    "source_tree": "/private/tmp/phase8-clean-source-final/distributed_backtester-0.8.0",
+    "status": {
+      "counts": {
+        "failed": 0,
+        "pending": 0,
+        "running": 0,
+        "succeeded": 4
+      },
+      "experiment_id": "6c84073f7aece8fd81d63ecc5cd856abe8c185e5cc332efdc42b913fdc9c28e4",
+      "jobs": [
+        {
+          "artifact": "results/24765a6aca278362092a1c7a91a284ab819789c400dce645d27fc013a21e0180.json",
+          "content_sha256": "b8ace0928f93851cd02fc8a4b6da4416fff59db8866660e6a69b58a1efae7d14",
+          "failure": null,
+          "job_id": "24765a6aca278362092a1c7a91a284ab819789c400dce645d27fc013a21e0180",
+          "metrics": {
+            "fill_count": 0,
+            "final_equity": "1000.000000",
+            "maximum_drawdown": "0.000000000000",
+            "total_fees": "0.000000",
+            "total_return": "0.000000000000"
+          },
+          "status": "succeeded"
+        },
+        {
+          "artifact": "results/4b36001148d8ff2670504bd02b703efe42c3d1d67241fff9cc7b6b2027f4133b.json",
+          "content_sha256": "1016b9a45a1044452bc07233a89fe42dd5ffb645622894842ada2d0ffd828ed9",
+          "failure": null,
+          "job_id": "4b36001148d8ff2670504bd02b703efe42c3d1d67241fff9cc7b6b2027f4133b",
+          "metrics": {
+            "fill_count": 2,
+            "final_equity": "749.257000",
+            "maximum_drawdown": "0.250743000000",
+            "total_fees": "1.743000",
+            "total_return": "-0.250743000000"
+          },
+          "status": "succeeded"
+        },
+        {
+          "artifact": "results/b17ae8e0b34c7b6b5458c726ecf0d22c6296a2c0cf1d7e9bd2edd40ee4723894.json",
+          "content_sha256": "8519d7c569aecfa0e50ecf30d5fc840f758c692a1551ab2b7d91709666cd470a",
+          "failure": null,
+          "job_id": "b17ae8e0b34c7b6b5458c726ecf0d22c6296a2c0cf1d7e9bd2edd40ee4723894",
+          "metrics": {
+            "fill_count": 0,
+            "final_equity": "1000.000000",
+            "maximum_drawdown": "0.000000000000",
+            "total_fees": "0.000000",
+            "total_return": "0.000000000000"
+          },
+          "status": "succeeded"
+        },
+        {
+          "artifact": "results/e712c0aa4516bb6a264d8bfe18492558d527508ab1812f29ed437198d25d04a0.json",
+          "content_sha256": "f654a63f0a41d0a06a08ad16021eec74eb1797b8550d2009cb09ab08da8afeb6",
+          "failure": null,
+          "job_id": "e712c0aa4516bb6a264d8bfe18492558d527508ab1812f29ed437198d25d04a0",
+          "metrics": {
+            "fill_count": 2,
+            "final_equity": "749.257000",
+            "maximum_drawdown": "0.250743000000",
+            "total_fees": "1.743000",
+            "total_return": "-0.250743000000"
+          },
+          "status": "succeeded"
+        }
+      ],
+      "publication_complete": true,
+      "schema_version": 1,
+      "source_kind": "classic"
+    },
+    "successes": 4
+  },
+  "completion_scope": "Local Phase 8 portfolio work only. No push, merge, new runtime implementation or new benchmark.",
+  "documentation_checks": {
+    "anchor_links": 16,
+    "bash_blocks": 102,
+    "errors": [],
+    "local_links": 589,
+    "markdown_files": 55
+  },
+  "fresh_build_investigation": {
+    "corrected_command": "/private/tmp/phase8-runtime-wheel-env/bin/python -I -m build --outdir /private/tmp/phase8-fresh-isolated-build",
+    "corrected_exit_code": 0,
+    "correction": "Fresh instructions use default isolated build with the existing pinned build-system requirement.",
+    "diagnostic": "Backend setuptools.build_meta is not available: no setuptools in fresh development environment.",
+    "exit_code": 1,
+    "failed_command": "/private/tmp/phase8-runtime-wheel-env/bin/python -I -m build --no-isolation --outdir /private/tmp/phase8-fresh-build-probe"
+  },
+  "historical_claims": [
+    {
+      "id": "phase2-substantial-process2",
+      "measured_engine": "distributed-backtester/0.3.0:daily-long-only-v1",
+      "process2_median_seconds": 1.3212200409907382,
+      "sequential_median_seconds": 2.0685052910121158,
+      "sources": [
+        "docs/benchmarks/phase-2/substantial.json"
+      ],
+      "speedup": 1.5656024180960906,
+      "timer": "Fresh coordinator start through child exit, full detail export included.",
+      "workload": {
+        "bars": 4096,
+        "config_generator": "bounded-sma-windows-cash-batches-v1",
+        "fee_bps": 10,
+        "jobs": 64,
+        "seed": 1729,
+        "source_sha256": "0708065cebc66426d1ee4c5e1caa367eac10d1fbc43b27346ac17a77ad5eb70c",
+        "symbol": "BENCH"
+      }
+    },
+    {
+      "baseline_median_seconds": 3.821516875002999,
+      "candidate_median_seconds": 2.6672691670246422,
+      "id": "phase6-substantial-sequential-optimization",
+      "optimization_speedup": 1.4327451170839005,
+      "runtime_reduction_percent": 30.203914982776336,
+      "scope": "Archived 0.7.0 revisions, one M3 Pro host, three timed repetitions per configuration; not current 0.8.0 performance.",
+      "sources": [
+        "docs/benchmarks/phase-6/baseline-substantial.json",
+        "docs/benchmarks/phase-6/candidate-substantial.json",
+        "docs/benchmarks/phase-6/substantial-comparison.json"
+      ],
+      "workload": {
+        "bars": 16384,
+        "config_generator": "bounded-sma-windows-cash-batches-v1",
+        "expected_experiment_id": "6e1c828c11d7403feb9ba81e790f5f9a594ffdb8bafc3f0e11ca98eb65fc9061",
+        "expected_manifest": "expected_manifest.json",
+        "fee_bps": 10,
+        "jobs": 32,
+        "seed": 1729,
+        "source_sha256": "b07d8ee9be0d47f5d0d67d7588224e0498d8a51794ad8853e2b56e3152e396de",
+        "symbol": "BENCH"
+      }
+    }
+  ],
+  "historical_evidence_sha256": {
+    "docs/benchmarks/phase-2/substantial.json": "205408c4ce315b892158d19cde51f4dae7eba0a30a9ee2f69aa683766edb4b63",
+    "docs/benchmarks/phase-6/baseline-substantial.json": "4598d42bbe14f630b894cc610f39c3e51e262cf52853c517fc0227d1086487cf",
+    "docs/benchmarks/phase-6/candidate-substantial.json": "d9946424aa4b95f65fefcfb731318afa7de2068019f54221218fb034b2fc03b2",
+    "docs/benchmarks/phase-6/substantial-comparison.json": "85c3cae14531c544ce4e4857f511008a9ca1c6288740a13157d598d4eedc0809"
+  },
+  "independent_reviews": [
+    {
+      "document_sha256": {
+        "docs/engineering-deep-dive.md": "edec312dbe2dc32bb8060def9896608f2988c7586d568db1e8268a5252654935",
+        "docs/fault-tolerance-demo.md": "60c1eff926a405d6f57750655f356cc3bab2e8b3ad9418214ff1645529374405"
+      },
+      "method": "Read-only primary-source/test/evidence inspection; no independent execution.",
+      "report_sha256": "9967add4cd67bf8233fcc16b42a03c7fb6884b232709aaca2f096c1066c06c0f",
+      "scope": "technical-faults",
+      "verdict": "Spec and quality accepted; no P1/P2 findings."
+    },
+    {
+      "document_sha256": {
+        "README.md": "3322e891b992c1394f37dccede0fbf5e55b1dbdee2d71539d995976f4d99546c",
+        "docs/cli-reference.md": "c97b2793275f90e83903dc659690123931a5cdddc65f2dacd6953be66b1973de",
+        "docs/limitations.md": "7cf69a0edf66f76b913a83550446ebca1bf77663b50211fbda80b0ce2fa029a8",
+        "docs/reproducibility.md": "261b8f2d26c4c319438137450bfaf9fd7b253cdc7449bafa5be4753bd0d2bce7"
+      },
+      "method": "Read-only primary-source/test/evidence inspection; no independent execution.",
+      "report_sha256": "c240e0f600ea07db59dd7fa24150a3d38e7c6db2271814412c8abfe04420ed17",
+      "scope": "entry-reproduction",
+      "verdict": "Spec and quality accepted; no P1/P2 findings."
+    },
+    {
+      "document_sha256": {
+        "README.md": "3322e891b992c1394f37dccede0fbf5e55b1dbdee2d71539d995976f4d99546c",
+        "docs/benchmark-results.md": "89e4df2c00d0a4ae03e972062a2b25ddc63faa98b392f722037de1954badf3da",
+        "docs/portfolio-summary.md": "8966ddc28afed67f462027eed4d3b0b21312781443eb3035c22dd76666c3d252"
+      },
+      "method": "Raw-observation arithmetic, Git source fingerprint recomputation and source/test/AST/link inspection; no independent execution.",
+      "profiles_checked": 24,
+      "report_sha256": "fc3d90c8714c85754fef76b76cd52fe34dc02ee9c3f3e026236d722c025dc97e",
+      "resume_candidates_checked": 3,
+      "scope": "benchmarks-interview-resume",
+      "table_rows_checked": 44,
+      "verdict": "Spec, numerical evidence, scope and quality accepted; no P1/P2 findings."
+    },
+    {
+      "method": "Read-only reconciliation of actual retained logs, command records, wheel bytes, source preservation and cross-document claims; no independent execution.",
+      "report_sha256": "85bd0bf55f3c8e0b29801d7cab792a1a839ba6776d5fead4595ef5c079b92e83",
+      "scope": "whole-phase-consistency",
+      "scope_limit": "Review preceded final navigation/completion wording and source-archive refresh; those are main-owned followup checks.",
+      "verdict": "Accepted within bounded scope; no P1/P2 findings."
+    }
+  ],
+  "installed_checks": {
+    "core": {
+      "command": "/private/tmp/phase8-final-core-env/bin/python -I /Users/blakezhang/Documents/Dev/distrubuted-backtester/scripts/smoke.py --data /Users/blakezhang/Documents/Dev/distrubuted-backtester/examples/sma.csv --output-parent /private/tmp/phase8-final-core-smoke --timeout 180 --signals",
+      "cwd": "/private/tmp",
+      "exit_code": 0,
+      "report": {
+        "installed": {
+          "package_file": "/private/tmp/phase8-final-core-env/lib/python3.14/site-packages/distributed_backtester/__init__.py",
+          "record_file": "/private/tmp/phase8-final-core-env/lib/python3.14/site-packages/distributed_backtester-0.8.0.dist-info/RECORD",
+          "recorded_python_files": 46,
+          "uid": 501,
+          "version": "0.8.0"
+        },
+        "ok": true,
+        "ray": false,
+        "schema_version": 1,
+        "semantic_digest": "b3d189adfc79df1c9567cbf09f01b2b9ec96d236c4d83a65d0962fa471584006",
+        "signals": true,
+        "storage": false,
+        "workspace": "/private/tmp/phase8-final-core-smoke/smoke-k6xhc9eq"
+      },
+      "wheel_scope": "Final wheel README metadata and all 47 frozen package files."
+    },
+    "runtime": {
+      "command": "/private/tmp/phase8-runtime-wheel-env/bin/python -I /Users/blakezhang/Documents/Dev/distrubuted-backtester/scripts/smoke.py --data /Users/blakezhang/Documents/Dev/distrubuted-backtester/examples/sma.csv --output-parent /private/tmp/phase8-final-runtime-smoke --timeout 180 --ray --storage --signals",
+      "cwd": "/private/tmp",
+      "exit_code": 0,
+      "report": {
+        "installed": {
+          "package_file": "/private/tmp/phase8-runtime-wheel-env/lib/python3.14/site-packages/distributed_backtester/__init__.py",
+          "record_file": "/private/tmp/phase8-runtime-wheel-env/lib/python3.14/site-packages/distributed_backtester-0.8.0.dist-info/RECORD",
+          "recorded_python_files": 46,
+          "uid": 501,
+          "version": "0.8.0"
+        },
+        "ok": true,
+        "ray": true,
+        "schema_version": 1,
+        "semantic_digest": "b3d189adfc79df1c9567cbf09f01b2b9ec96d236c4d83a65d0962fa471584006",
+        "signals": true,
+        "storage": true,
+        "workspace": "/private/tmp/phase8-final-runtime-smoke/smoke-51y8ro7g"
+      },
+      "wheel_scope": "Final wheel README metadata and all 47 frozen package files; optional environment was created fresh for candidate verification, then offline reinstalled with the final wheel."
+    }
+  },
+  "installed_pip_checks": [
+    {
+      "command": "/private/tmp/phase8-final-core-env/bin/python -I -m pip check",
+      "exit_code": 0,
+      "result": "No broken requirements found"
+    },
+    {
+      "command": "/private/tmp/phase8-runtime-wheel-env/bin/python -I -m pip check",
+      "exit_code": 0,
+      "result": "No broken requirements found"
+    }
+  ],
+  "native_environment": {
+    "architecture": "arm64",
+    "hardware": "Apple M3 Pro, 11 cores, 18 GiB",
+    "os": "macOS 26.6.1",
+    "python": "3.14.6"
+  },
+  "new_performance_measurements": false,
+  "not_observed": [
+    "Remote GitHub Actions",
+    "Linux AMD64 execution",
+    "Physical multi-machine scaling",
+    "Power-loss or disk-loss recovery",
+    "Docker Desktop bind-filesystem durability"
+  ],
+  "packaging": {
+    "archive": "distributed_backtester-0.8.0.tar.gz",
+    "archive_scope": "238 required source-archive files compared byte-for-byte with the delivery tree; archive refreshed for completed report, ledger, navigation and verification JSON. Archive SHA-256 is kept in the separate local packaging report to avoid a self-referential hash.",
+    "build_command": "/private/tmp/phase8-runtime-wheel-env/bin/python -I -m build --outdir /private/tmp/phase8-final-dist",
+    "build_exit_code": 0,
+    "core_runtime_dependencies": 0,
+    "inspection_command": "python3 /private/tmp/phase8-final-packaging.py",
+    "inspection_exit_code": 0,
+    "package_files": 47,
+    "package_python_files": 46,
+    "refresh_command": "/private/tmp/phase8-runtime-wheel-env/bin/python -I -m build --sdist --outdir /private/tmp/phase8-final-dist",
+    "refresh_exit_code": 0,
+    "schema_version": 1,
+    "verified_archive_files": 238,
+    "wheel": "distributed_backtester-0.8.0-py3-none-any.whl",
+    "wheel_sha256": "2e6f1dde1fb9425343485462af53cadd229ed36997452be3404bab25e7d9f8f7"
+  },
+  "phase": 8,
+  "preserved_historical_sections": [
+    {
+      "path": "docs/clear explanation.md",
+      "phase6_section_sha256": "cc2d857415e195177d34ff3ea131940c8d2417dccb5b7e6f4c766dcc69fab58c",
+      "unchanged": true
+    },
+    {
+      "path": "docs/technical-explanation.md",
+      "phase6_section_sha256": "8a4c50701aab34147a57c64b4e7c9186940afdcdabcb28c2f743ddd535ab6f05",
+      "unchanged": true
+    }
+  ],
+  "remote_publication": false,
+  "schema_version": 1,
+  "source_identity": {
+    "engine_id": "distributed-backtester/0.8.0:daily-long-only-v1",
+    "source_sha256": "a3edda1731d8694fda5d6987e570e0cca365bbee22d18bbfc0dbd116003f618f"
+  },
+  "status": "complete",
+  "temporary_verifier_correction": {
+    "cause": "Temporary checker used max_drawdown instead of the existing maximum_drawdown field; the CLI reference command itself succeeded.",
+    "correction": "Corrected only the private verifier field and repeated the complete walkthrough from another fresh unpacked source tree.",
+    "first_exit_code": 1,
+    "repeat_exit_code": 0
+  },
+  "unchanged_implementation": {
+    "base_commit": "215cd0a",
+    "pyproject_unchanged": true,
+    "source_identity_unchanged": true,
+    "tracked_python_files_byte_equal": 102,
+    "typing_marker_unchanged": true
+  }
+}

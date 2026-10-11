@@ -12,7 +12,8 @@ The Phase 1 engine implements that replay for one asset, one daily price table,
 and one set of settings at a time. Phase 2 adds parameter sweeps that run many
 independent simulations sequentially or with local worker processes. Phase 3 adds
 Ray workers and connections to an existing cluster. The package version
-is `0.8.0`, with **Phase 7 complete**. Phase 8 was approved for final portfolio documentation.
+is `0.8.0`. Phase 8 completes the explanations and portfolio material around
+the verified Phase 7 implementation; see the [final report](phase-8-report.md).
 
 You can run the command below and get a JSON result containing the settings,
 data fingerprint, trades, order outcomes, daily portfolio values, and summary

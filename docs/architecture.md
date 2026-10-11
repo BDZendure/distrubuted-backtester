@@ -6,7 +6,9 @@ This document describes the implemented system through Phase 7.
 **Phase 7 is complete, version `0.8.0`.** Native, installed-wheel and Linux ARM64
 runtime/dev release checks passed; see the [Phase 7 report](phase-7-report.md)
 and [verification record](phase-7-verification.json).
-Phase 8 was explicitly approved for portfolio documentation. Phase 0 established the
+Phase 8 portfolio documentation is complete; the [deep dive](engineering-deep-dive.md)
+and [completion report](phase-8-report.md) explain its synthesis and checks.
+Phase 0 established the
 foundation; the approved Phase 1 implements strict CSV loading, SMA signals,
 exact execution/accounting, a deterministic simulation, metrics, JSON export,
 and a CLI. Phase 2 adds stable jobs, parameter sweeps, sequential and process
@@ -556,7 +558,7 @@ execution with configuration, observation, read-only status, shutdown handling
 and installed packaging. It adds focused modules inside the same Python CLI
 package. The simulation still consumes validated immutable inputs and returns
 semantic results. No new runtime dependency, frontend or service is introduced.
-Phase 8 was explicitly approved for portfolio documentation.
+Phase 8 documents these implemented boundaries without changing application behavior.
 
 ```mermaid
 flowchart LR

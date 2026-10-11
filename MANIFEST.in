@@ -1,5 +1,6 @@
 recursive-include docs *.md
 include docs/phase-7-verification.json
+include docs/phase-8-verification.json
 recursive-include docs/benchmarks *.json
 recursive-include docs/benchmarks *.pstats *.patch
 recursive-include requirements *.lock

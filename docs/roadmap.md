@@ -21,7 +21,11 @@ optimizations, profiling and verified comparison are recorded in the
 [completed plan](phase-6-plan.md). Phase 7 was explicitly approved and its
 [operational plan](phase-7-plan.md), [completion report](phase-7-report.md) and
 [verification record](phase-7-verification.json) document its completed local
-validation. Remote CI is configured but unobserved. Phase 8 remains unapproved.
+validation. Remote CI is configured but unobserved. Phase 8 was explicitly approved
+and its portfolio documentation is complete. Its [design](phase-8-design.md),
+[plan](phase-8-plan.md), [report](phase-8-report.md) and
+[verification record](phase-8-verification.json) record the final scope and checks.
+Remote push/publication still requires separate authorization.
 
 ## Phase 0: Architecture and repository setup
 
@@ -213,6 +217,9 @@ their variability is established. A frontend is unnecessary for these goals.
 **Checkpoint:** Validate and report. Stop before Phase 8.
 
 ## Phase 8: Portfolio polish
+
+**Status:** Complete; see the [completion report](phase-8-report.md),
+[deep dive](engineering-deep-dive.md) and [interview material](portfolio-summary.md).
 
 **Dependency:** Verified prior phases and their recorded measurements.
 
