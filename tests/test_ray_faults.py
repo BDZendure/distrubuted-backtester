@@ -12,10 +12,11 @@ import signal
 import subprocess
 import sys
 import weakref
+from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 from time import monotonic, sleep
-from types import ModuleType, SimpleNamespace
+from types import FrameType, ModuleType, SimpleNamespace
 from typing import NoReturn, cast
 
 import pytest
@@ -116,6 +117,15 @@ class _Cloudpickle(ModuleType):
         return b"serialized dataset"
 
 
+class _SignalUtils(ModuleType):
+    """The private registration boundary, without importing the Ray runtime."""
+
+    def set_sigterm_handler(
+        self, handler: Callable[[int, FrameType | None], None]
+    ) -> None:
+        signal.signal(signal.SIGTERM, handler)
+
+
 class _FakeRay(ModuleType):
     """Replace transport only; retain the actual worker/backend/collector code."""
 
@@ -132,11 +142,16 @@ class _FakeRay(ModuleType):
         self.readiness_timeouts: list[float | None] = []
         self.shutdowns = 0
         self.dataset_puts = 0
+        self.signal_utils = _SignalUtils("ray._private.utils")
 
     def is_initialized(self) -> bool:
         return self.initialized
 
     def init(self, **options: object) -> SimpleNamespace:
+        def vendor_handler(signum: int, frame: FrameType | None) -> NoReturn:
+            raise SystemExit(signum)
+
+        self.signal_utils.set_sigterm_handler(vendor_handler)
         self.initialized = True
         return SimpleNamespace(
             address_info={"session_dir": "/tmp/fake-ray", "gcs_address": "fake:1"}
@@ -205,6 +220,8 @@ def fake_ray(monkeypatch: pytest.MonkeyPatch) -> _FakeRay:
     def import_module(name: str, package: str | None = None) -> ModuleType:
         if name == "ray._private.worker":
             return private_worker
+        if name == "ray._private.utils":
+            return transport.signal_utils
         if name == "ray.cloudpickle":
             return pickler
         if name == "ray" or name.startswith("ray."):
@@ -214,6 +231,15 @@ def fake_ray(monkeypatch: pytest.MonkeyPatch) -> _FakeRay:
     monkeypatch.setattr(ray_backend, "_require_ray", lambda: transport)
     monkeypatch.setattr(importlib, "import_module", import_module)
     return transport
+
+
+@pytest.mark.parametrize("name", ["ray", "ray._raylet", "ray._private.unmodeled"])
+def test_pure_fixture_forbids_unmodeled_real_ray_imports(
+    fake_ray: _FakeRay, name: str
+) -> None:
+    assert importlib.import_module("ray._private.utils") is fake_ray.signal_utils
+    with pytest.raises(AssertionError, match="pure test attempted a real Ray import"):
+        importlib.import_module(name)
 
 
 def _assert_cleaned(transport: _FakeRay) -> None:
