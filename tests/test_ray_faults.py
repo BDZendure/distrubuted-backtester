@@ -397,11 +397,14 @@ def _real_fault(mode: str, directory: Path, source: str) -> None:
                 assert error.value.__cause__.actor_init_failed is False
                 assert "workers" in backend.diagnostics
                 evidence = [
-                    json.loads(path.read_text()) for path in directory.glob("death-*.json")
+                    json.loads(path.read_text())
+                    for path in directory.glob("death-*.json")
                 ]
                 assert evidence, "worker never reached the intentional os._exit"
                 assert all(record["exit_code"] == 23 for record in evidence)
-                assert {record["pid"] for record in evidence} <= set(_actor_pids(backend))
+                assert {record["pid"] for record in evidence} <= set(
+                    _actor_pids(backend)
+                )
             else:
                 assert mode == "export-failure"
                 exported = 0

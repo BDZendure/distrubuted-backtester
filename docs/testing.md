@@ -11,6 +11,14 @@ mode; CLI tests also run outside the repository without `PYTHONPATH` workarounds
 CI builds wheel/source artifacts and runs the wheel's installed CLI in a fresh
 environment against the committed synthetic example.
 
+Phase 3 adds actual Ray actors and CLI backend equivalence, immutable dataset and
+code identity checks, actor reuse, bounded submission, early close, custom resource
+validation, readiness, initialized-driver refusal, and owned shutdown. Narrow
+unit tests also cover the pinned reaper-pipe cleanup adapter without suppressing
+warnings. Real cluster/process measurement tests require process enumeration and
+local sockets; the macOS tool sandbox blocks those APIs, so local verification
+uses an unrestricted execution context. This does not weaken the tests.
+
 Run pytest, Ruff lint/format, strict mypy, `pip check`, and `python -m build` using
 the [README commands](../README.md). Development checks are configured centrally
 in `pyproject.toml`. Counts and commands are recorded in the
@@ -64,7 +72,7 @@ The benchmark tests run actual fresh-process sequential/process trials. Optional
 psutil is installed for CI; measurement tests label injected denial/race cases.
 No mocked runtime substitutes for actual process execution.
 
-Phase 3 runs the same manifest through Ray. Distinguish local remote-task coverage
+Phase 3 runs the same manifest through real Ray actors. Distinguish local remote-worker coverage
 from true multiple-machine behavior. Pin and record the environment for each run.
 
 Phase 4 uses real persistent transactions and controlled failure injection at job,
@@ -84,3 +92,27 @@ Record exact commands, versions, exit outcomes, test counts, and execution block
 in each phase report. Distinguish configured CI jobs from CI runs actually observed.
 Do not delete or weaken a failing assertion to fit generated output. Investigate
 the underlying chronology or contract first; document justified contract changes.
+
+
+## Phase 3 failure and measurement evidence
+
+`tests/test_ray_faults.py` preserves pure transport-boundary checks for unexpected
+outcome types/IDs, actor errors, readiness timeout, export failure, early close,
+and independent bounded-reference release. Those cases are explicitly labeled
+boundary injection, not a replacement for actual Ray execution. Real subprocess
+cases crash an actor during execution and fail artifact export while actors are
+alive, then inspect owned process exit and absence of a final index.
+
+`tests/test_ray_cluster.py` starts real one-node and two-node local clusters,
+attaches separate drivers, checks active resource reservations and distinct node
+placement, and verifies external service survival after success, early close,
+and impossible per-node placement. Local nodes share hardware. The harness uses
+Ray's pinned private Cluster helper for test setup and records the limitation.
+
+The owned benchmark inventory tests use fake process boundaries to reproduce
+PID/group reuse, denied discovery/memory, shared memory accounting, and safe
+ownership certification. Benchmark tests verify initial workload/source identity,
+all-success semantic artifacts, repeated order, failure preservation, optional
+imports, and explicit post-verification deletion. Real cold smoke commands prove
+the full subprocess path separately. Preserve negative controls; do not reduce
+assertions to the backend's self-reported counters.

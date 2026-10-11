@@ -1,6 +1,6 @@
 # Dependency plan
 
-## Current Phase 2 environment
+## Current Phase 3 environment
 
 Runtime dependencies are empty. Development/build tools are declared and pinned
 in `pyproject.toml`; installation uses a repository-local virtual environment.
@@ -13,9 +13,10 @@ in `pyproject.toml`; installation uses a repository-local virtual environment.
 | mypy | 2.4.0 | Strict static type checks |
 | build | 1.6.1 | Wheel and source distribution validation |
 | psutil (optional `benchmark` extra) | 7.2.2 | Sample coordinator/descendant RSS; hardware observations |
+| Ray (optional `distributed` extra) | 2.59.0 | Remote actors, resource scheduling, and object-store data placement |
 
 The core and process backend still require no third-party runtime dependency.
-Phase 2 adds only optional psutil; backtests and sweeps work without it. Version
+Phase 2 adds optional psutil; sequential/process sweeps work without it. Version
 and macOS arm64 wheel support were checked against [PyPI metadata](https://pypi.org/project/psutil/).
 Its [API documentation](https://psutil.readthedocs.io/stable/) defines RSS and process-tree
 observations. The complete observed macOS arm64/Python 3.14.6 tool environment,
@@ -31,13 +32,30 @@ observed Python 3.12 run.
 Future optional libraries may impose narrower interpreter compatibility and must
 be verified at adoption time.
 
+Phase 3 pins the optional core Ray package to 2.59.0, excluding dashboard, cluster
+launcher, ML, and storage extras. Published wheel resolution and a real local
+cluster succeeded on CPython 3.14.6/macOS arm64. This establishes that environment,
+not every claimed supported platform. The optional integration CI matrix is
+configured for Linux/Python 3.12 and 3.14; remote CI outcomes remain unobserved.
+The observed complete environment is captured separately in
+[ray-benchmark.lock](../requirements/ray-benchmark.lock), preserving Phase 2's
+historical lock. Ray's dependencies are installed only by the `distributed` extra;
+the core wheel remains dependency free. All cluster nodes require compatible
+Python/Ray versions and identical installed project source.
+
+The private reaper-pipe cleanup adapter in `backends/ray.py` is tied to Ray 2.59.0.
+Any pin update must revalidate strict warning checks, local/external lifecycle,
+actor semantics, and optional import behavior. Ray publishes dynamic runtime API
+types; the narrow boundary uses explicitly typed dataclasses and validates remote
+outcomes before handing them to the collector.
+
 ## Planned additions
 
 | Phase | Dependencies to evaluate | Rationale |
 | --- | --- | --- |
 | 1 (implemented) | Standard-library `csv`, exact integer text parsing, `fractions`, `argparse`, `json`, `hashlib`, filesystem publication | No runtime dependency added; exact accounting needs no dataframe framework |
 | 2 (implemented) | Standard-library `concurrent.futures`, `multiprocessing`; optional psutil 7.2.2 | Local CPU execution and whole-process memory measurement |
-| 3 | Ray as an optional extra | Distributed scheduling and data placement |
+| 3 (implemented) | Optional Ray 2.59.0 | Remote actor scheduling and data placement |
 | 4 | Standard-library SQLite candidate | Atomic lifecycle/result commits for a single coordinator |
 | 5 | PyArrow and DuckDB; pandas for concrete tabular/reporting use if needed | Columnar storage and analytical queries |
 | 6 | Profilers as justified; NumPy or compiled tools only for measured bottlenecks | Optimize based on evidence |

@@ -1,14 +1,14 @@
 # Distributed Backtesting Engine
 
 A portfolio engineering project for reproducible strategy simulations, local CPU
-parallelism, and eventually distributed execution. The focus is correct event
+parallelism, and Ray execution. The focus is correct event
 timing, exact accounting, explicit failure behavior, and measured performance.
 
-**Current stage: Phase 2, local parallel execution.** Run a deterministic daily
-SMA backtest, or a parameter sweep through sequential and spawn process backends.
+**Current stage: Phase 3, distributed execution.** Run a deterministic daily
+SMA backtest, or a parameter sweep through sequential, spawn process, or Ray backends.
 Stable jobs, bounded submissions, explicit failures, incremental result export,
 and reproducible benchmark measurements extend the Phase 1 engine.
-Phase 3 requires explicit approval.
+Ray is optional. Phase 4 requires explicit approval.
 
 ## Start with the explanations
 
@@ -24,6 +24,8 @@ Phase 3 requires explicit approval.
   [benchmark methodology](docs/benchmarking.md), and [dependency plan](docs/dependencies.md).
 - [Phase 2 completion report](docs/phase-2-report.md) and
   [local scaling results](docs/benchmarks/phase-2/results.md).
+- [Ray cluster instructions](docs/ray-clusters.md) and
+  [Ray execution decision](docs/decisions/0005-ray-actor-execution.md).
 - [Phase 1 report](docs/phase-1-report.md), with the sample ledger, and
   [Phase 0 report](docs/phase-0-report.md) record earlier milestones.
 
@@ -43,6 +45,16 @@ changes under `src/` available through the installed package. The `dev` extra
 installs pytest, Ruff, mypy, and build. `benchmark` adds psutil 7.2.2 for process
 measurements. The core and process backend have no third-party dependencies; omit
 `,benchmark` if you only want backtests and sweeps.
+
+For Ray execution, install the additional optional extra:
+
+```bash
+python -m pip install --editable ".[dev,benchmark,distributed]"
+```
+
+This pins Ray 2.59.0. A matching Python/OS wheel must be available. The current
+Mac was verified with Python 3.14.6 and its macOS arm64 wheel. All cluster nodes
+need compatible Python/Ray versions and identical installed project source.
 
 ## Run a backtest
 
@@ -156,6 +168,38 @@ retain the Git revision and environment when reproducing a single result. Phase 
 job envelopes add the actual installed-source fingerprint and experiment execution
 reports capture revision/status and the complete installed environment.
 
+## Run with Ray
+
+```bash
+distributed-backtester sweep --data examples/sma.csv --symbol SYNTH \
+  --price-basis raw --fast 1 2 --slow 3 4 --fee-bps 10 \
+  --backend ray --workers 2 --output-dir artifacts/sweep-ray
+```
+
+This starts a local Ray cluster and stops it after collection. Each actor checks
+the installed source and receives the dataset once. Jobs use the same engine and
+fresh strategy state. `--ray-address HOST:PORT` attaches to an existing cluster;
+cleanup leaves that cluster running. Resource options and reproducible deployment
+instructions are in [Ray clusters](docs/ray-clusters.md).
+
+Compare all three backends with a cold local benchmark:
+
+```bash
+python -m distributed_backtester.ray_benchmark run \
+  --bars 4096 --jobs 64 --workers 2 4 8 --repetitions 3 \
+  --discard-trial-results --output-dir artifacts/ray-comparison
+```
+
+Each configuration has one warmup and three timed fresh-process trials. Ray
+trials include local cluster and actor startup, detailed result export, shutdown,
+and process exit. Identical semantic output is verified before accepting a trial.
+`--discard-trial-results` removes only newly generated detailed result files after
+verification, retaining metadata, digests, logs, and raw observations. Omit it to
+retain all artifacts. Memory inventory covers the owned local services and workers;
+denied or unavailable private-memory reads produce null measurements. It does not
+measure external cluster nodes. Use available worker counts on smaller machines.
+See [benchmark methodology](docs/benchmarking.md) for limits and scope.
+
 ## Run the current checks
 
 ```bash
@@ -170,11 +214,11 @@ python -m build
 Check the built wheel in a fresh environment:
 
 ```bash
-python -m venv .venv-wheel-phase2
-.venv-wheel-phase2/bin/python -m pip install --no-index --no-deps --force-reinstall \
-  dist/distributed_backtester-0.3.0-py3-none-any.whl
-wheel_python="$PWD/.venv-wheel-phase2/bin/python"
-wheel_cli="$PWD/.venv-wheel-phase2/bin/distributed-backtester"
+python -m venv .venv-wheel-phase3
+.venv-wheel-phase3/bin/python -m pip install --no-index --no-deps --force-reinstall \
+  dist/distributed_backtester-0.4.0-py3-none-any.whl
+wheel_python="$PWD/.venv-wheel-phase3/bin/python"
+wheel_cli="$PWD/.venv-wheel-phase3/bin/distributed-backtester"
 sample_data="$PWD/examples/sma.csv"
 (cd /tmp && "$wheel_python" -I -c "import distributed_backtester")
 (cd /tmp && "$wheel_cli" backtest --data "$sample_data" --symbol SYNTH \
@@ -187,7 +231,7 @@ records what was actually executed locally and what remains unobserved remotely.
 
 ## Scope and limitations
 
-Later phases add Ray, durable retries and
+Later phases add durable retries and
 idempotent result commits, Parquet/DuckDB, profiling, and operational tooling.
 These later capabilities remain plans. Local measurements describe this host and
 workloads; they do not establish cross-machine scaling or production readiness.

@@ -11,6 +11,7 @@ decisions become accepted only when the relevant implementation phase is approve
 | [0003: Reproducibility and results](0003-reproducibility-and-results.md) | Phases 1-2 implemented; durable guarantees proposed | Semantic results, identity, execution guarantees |
 
 | [0004: Bounded local execution](0004-bounded-local-execution.md) | Accepted and implemented in Phase 2 | Spawn initialization, streaming export, source identity, benchmark scope |
+| [0005: Ray actor execution](0005-ray-actor-execution.md) | Accepted for Phase 3 | Optional actor pool, resources, data placement, ownership, measurement scope |
 
 Update status when a checkpoint is approved. Supersede a consequential decision
 with a new ADR and link the records; preserve the reasoning for interview review.

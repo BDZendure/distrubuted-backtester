@@ -6,17 +6,20 @@ A **backtest** replays historical prices and follows a trading rule. It records
 hypothetical purchases, sales, fees, cash, and the value of shares still held.
 The Phase 1 engine implements that replay for one asset, one daily price table,
 and one set of settings at a time. Phase 2 adds parameter sweeps that run many
-independent simulations sequentially or with local worker processes. The current
-package release is `0.3.0`.
+independent simulations sequentially or with local worker processes. Phase 3 adds
+Ray workers and connections to an existing cluster. The current package release
+is `0.4.0`.
 
 You can run the command below and get a JSON result containing the settings,
 data fingerprint, trades, order outcomes, daily portfolio values, and summary
 metrics. It uses whole shares and USD, and can hold shares or cash. This is
 **long-only** trading: it cannot sell borrowed shares or borrow money to buy more.
 
-Sweeps and the benchmark runner now work on one machine. Multiple machines,
-automatic recovery, and databases remain future work. Backtests and sweeps use
-Python's standard library; benchmark memory sampling has an optional dependency.
+All three backends can run on one machine. Ray can attach to a cluster, provided
+every machine has matching installed code. Actual performance across physical
+machines has not been established. Automatic recovery and databases remain
+future work. The core uses Python's standard library; Ray and memory sampling
+are optional dependencies.
 
 ## Python and the tools in simple terms
 
@@ -381,18 +384,75 @@ The [Phase 2 report](phase-2-report.md) and
 actual measurements. See the [benchmark methodology](benchmarking.md) for the
 measurement definitions.
 
+## Phase 3: Ray in simple terms
+
+Ray helps a Python program send work to other processes, including processes on
+other machines. A **cluster** is the group of machines or worker nodes available
+to Ray. The **driver** is your command-line program coordinating the experiment.
+An **actor** is a worker process that stays alive and handles several jobs.
+
+Think of a driver distributing worksheets to two assistants. Both assistants
+receive the same price history once. Each worksheet has different moving-average
+settings. The assistants calculate independently, and the driver saves their
+answers. A new strategy is created for every worksheet, so one job's holdings or
+signals cannot carry into the next.
+
+Use Terminal, from the project directory, with your environment activated:
+
+```bash
+python -m pip install --editable ".[dev,benchmark,distributed]"
+distributed-backtester sweep --data examples/sma.csv --symbol SYNTH \
+  --price-basis raw --fast 1 2 --slow 3 4 --fee-bps 10 \
+  --backend ray --workers 2 --output-dir artifacts/my-ray-sweep
+python -m json.tool artifacts/my-ray-sweep/index.json
+```
+
+The example CSV is included. This command runs four combinations using two Ray
+workers. Pick a new output directory when repeating it. Ray starts and stops its
+local cluster automatically. You do not need a website, dashboard, or cloud
+account. The interface is the same CLI you already used in Phase 1 and Phase 2.
+
+To check correctness, run the same sweep with `--backend sequential` and
+`--backend process --workers 2`, each in a new directory. Their manifest, detailed
+answers, and final index must agree byte for byte. `execution.json` will differ
+because it describes how each run happened. Automated tests check this as well:
+
+```bash
+python -m pytest tests/test_ray_backend.py tests/test_ray_cli.py
+```
+
+`--max-in-flight` limits how many submitted answers are waiting to be collected.
+`--cpus-per-worker` tells Ray how much CPU capacity to reserve per assistant; it
+does not make one simulation use several CPU cores. Most beginners should use
+the default value of 1. Ray's object store holds a transferable dataset, but each
+assistant still builds its own Python data objects from it.
+
+More workers can take longer for small jobs because starting workers, scheduling,
+moving data, and saving answers all cost time. The local Ray benchmark measures
+those costs. It starts a new cluster for every measured Ray run, so its timing
+includes startup and shutdown. It cannot tell you how fast a prestarted cluster
+or a different group of physical machines will be.
+
+An existing cluster uses `--ray-address HOST:PORT`. The command stops only its own
+actors and disconnects afterward, leaving that cluster running. Setup and matching
+package requirements are in [Ray cluster instructions](ray-clusters.md).
+
+If a strategy raises an ordinary error, that job gets an explicit failed answer.
+If a Ray worker or infrastructure fails, the experiment can stop with partial
+files and no final index. There are no automatic retries or resume yet. That is
+the next phase and requires your approval.
+
 ## What is planned next
 
 | Phase | Planned capability |
 | --- | --- |
-| 3 | Optional Ray execution across machines, with per-node memory and data-transfer measurements |
 | 4 | A single coordinator's durable job tracking, bounded retries, and at most one committed success per job ID, even if calculation repeats |
 | 5 | Parquet data and DuckDB analysis, comparing economic results while checking each format's provenance separately |
 | 6 | Profiling and optimizations supported by measured results |
 | 7 | Operational tooling and a reproducible developer environment |
 | 8 | Final documentation and portfolio evidence based on implemented facts |
 
-Those later features are not part of the implemented Phase 2 scope. Planned
+Those later features are not part of the implemented Phase 3 scope. Planned
 Phase 4 recovery does not promise coordinator high availability or recovery after
 disk loss. Several workers may be slower for small jobs, so scaling claims need
 actual measurements.

@@ -7,8 +7,9 @@ foundation; the approved Phase 1 implements strict CSV loading, SMA signals,
 exact execution/accounting, a deterministic simulation, metrics, JSON export,
 and a CLI. Phase 2 adds stable jobs, parameter sweeps, sequential and process
 backends, initialized workers, incremental export, and a benchmark harness.
+Phase 3 adds the optional Ray actor pool and an existing-cluster connection.
 Scheduling and analytical storage remain future designs. See the
-[Phase 2 report](phase-2-report.md).
+[Phase 2 report](phase-2-report.md) and [Ray instructions](ray-clusters.md).
 
 The engineering goal is reproducible independent simulations, reliable execution,
 and honest measurements. Strategy profitability is outside the acceptance criteria.
@@ -97,10 +98,13 @@ src/distributed_backtester/
     workloads.py
     benchmark.py
     measurement.py
+    ray_benchmark.py
+    ray_measurement.py
     backends/
         base.py
         sequential.py
         process.py
+        ray.py
     py.typed
 tests/
     test_packaging.py
@@ -124,6 +128,8 @@ docs/
     phase-1-report.md
     phase-2-plan.md
     phase-2-report.md
+    phase-3-plan.md
+    ray-clusters.md
     benchmarks/phase-2/
         results.md
         small.json
@@ -133,6 +139,8 @@ docs/
         0001-modular-package.md
         0002-simulation-semantics.md
         0003-reproducibility-and-results.md
+        0004-bounded-local-execution.md
+        0005-ray-actor-execution.md
 ```
 
 Execution has its own small module because fee rounding, affordability, timing,
@@ -144,7 +152,7 @@ and persistence modules. No empty subsystem packages are created in advance.
 
 ## Implemented and future contracts
 
-Phase 1 and Phase 2 names match the implementation. Later contracts remain
+Phase 1 through Phase 3 names match the implementation. Later contracts remain
 proposals. The API may evolve with documented decisions at phase gates.
 
 | Contract | Fields and rules |
@@ -359,11 +367,18 @@ retry, resume, or Phase 4 durable recovery guarantee is implemented.
 There is still one in-memory dataset copy per process; measure it before
 adding shared memory or memory-mapped storage.
 
-Phase 3 adds Ray as an optional backend without importing it on sequential paths.
-Place common data in Ray's object store where appropriate. That store is not
+Phase 3 implements Ray as an optional actor backend without importing it on
+sequential paths. A fixed worker pool checks installed source identity once per
+actor and uses the existing `execute_job` function with fresh strategy state.
+The coordinator puts common data once into Ray's object store. That store is not
 one shared-memory region across machines: serialization, inter-node movement,
 eviction, spill, and remote dataset availability must be measured. Local multi-node
 testing exercises protocol behavior but cannot establish cross-machine scaling.
+Per-actor CPU/custom resources, bounded submissions, explicit zero restarts/retries,
+and owned actor/connection cleanup are documented in
+[ADR 0005](decisions/0005-ray-actor-execution.md). Local clusters are stopped at
+iterator completion; externally started clusters remain running. Operational
+worker/node/timing diagnostics do not enter semantic identity.
 
 Phase 4 defines scheduler states `pending`, `running`, `succeeded`, and `failed`,
 with retryable attempts returning to `pending`. A scheduler is the single durable

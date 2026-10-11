@@ -5,7 +5,8 @@
 The Phase 1 engine implements a deterministic daily backtester for one asset,
 USD, whole shares, and long-only targets. Phase 2 adds immutable jobs, parameter
 sweeps, sequential and local process backends, incremental detailed export, a
-compact result index, and a benchmark runner. Release `0.3.0` retains strict CSV
+compact result index, and a benchmark runner. Phase 3 adds optional Ray actors.
+Release `0.4.0` retains strict CSV
 loading, the SMA strategy, next-open execution, exact accounting, return and
 drawdown metrics, and versioned JSON export. Runtime dependencies in
 `pyproject.toml` are empty. CSV parsing, integer arithmetic, `Fraction`, command
@@ -21,8 +22,9 @@ describes implemented contracts; it does not infer verification from a plan or
 quote a provisional test count. See the
 [beginner guide](clear%20explanation.md) for setup and plain-language definitions.
 
-Ray execution across machines, durable scheduling, retries, and databases remain
-planned for later phases. Phase 2 has no retries or recovery protocol.
+Ray execution is implemented in Phase 3, with identical engine and job contracts.
+Durable scheduling, retries, and databases remain later work. Phase 3 has no
+recovery protocol or multiple-machine performance claim.
 
 ## Actual module boundaries
 
@@ -339,7 +341,7 @@ slow 3, initial cash 1000, and fee 0 bps. Positive windows require fast < slow;
 cash must be positive exact micro-USD; fees are integers from 0 to 10000.
 `--output` selects a JSON file, otherwise JSON goes to stdout.
 `--overwrite` permits replacing that file. `backtest --help` explains options;
-top-level `--version` reports the installed release, `0.3.0` for this version. The
+top-level `--version` reports the installed release, `0.4.0` for this version. The
 [beginner guide's option table](clear%20explanation.md#run-the-included-example)
 explains each argument.
 
@@ -400,8 +402,8 @@ support; this implementation does not claim universal filesystem behavior.
 
 ## Release identity and reproducibility limits
 
-For an installation of release `0.3.0`, the engine ID is
-`distributed-backtester/0.3.0:daily-long-only-v1`. The release component comes
+For an installation of release `0.4.0`, the engine ID is
+`distributed-backtester/0.4.0:daily-long-only-v1`. The release component comes
 from installed package metadata; the suffix identifies the declared simulation
 semantics. It is not a source-code hash. Editing code in an editable installation
 can leave the release and engine ID unchanged, so that ID alone does not identify
@@ -586,19 +588,83 @@ The [benchmark results](benchmarks/phase-2/results.md) and
 verification evidence. See [benchmark methodology](benchmarking.md) for the wider
 measurement contract. This explanation makes no measured performance claims.
 
-## Planned Ray execution and measurement
+## Implemented Ray execution
 
-**Phase 3, not implemented:** Ray will be an optional adapter with compatibility
-checked at adoption. Its object store does not make data shared across machines
-without transfer, serialization, spill, eviction, and locality costs. A local Ray
-run cannot establish performance across physical machines.
+`backends/ray.py` implements the same `ExecutionBackend` iterator with a fixed
+actor pool. Ray is imported only when nonempty Ray execution begins. The
+`distributed` extra pins Ray 2.59.0; another version fails with explicit guidance.
+Each actor reserves CPU/custom resources for its lifetime, validates
+`current_implementation()` in its constructor, and holds one immutable dataset.
+Its `execute` method calls the existing `execute_job`, which constructs fresh
+strategy state per simulation. No simulation mechanics are duplicated.
+
+The coordinator puts the dataset once and passes that ObjectRef as a top-level
+constructor argument. Ray resolves it before constructor invocation and transfers
+it to the destination node if necessary. Python dataclasses/tuples deserialize
+into each actor's heap. This is not zero-copy data sharing. Readiness diagnostics
+record worker PID, node ID, dataset/code digests, and completed-job counts.
+
+Submissions are bounded by `max_in_flight`, default twice worker count. Calls are
+assigned round robin; actor methods execute serially. The driver uses `ray.wait`
+for a ready reference and verifies the returned outcome ID before yielding it.
+The collector validates full result contracts, exports each artifact, and sorts
+the compact final index. Idle actors can coexist with queues on busy actors;
+SPREAD is a placement preference, not a load-balancing guarantee.
+
+The default explicitly creates an owned `local` cluster, with integer CPU budget,
+no GPU reservation, disabled dashboard, and configurable object-store capacity
+(128 MiB by default). Fractional per-actor CPU quantities remain possible. Local CPU/custom capacity
+is rounded up to whole units. Requests have at most four decimal places and
+are at least 0.0001, so unsupported precision fails before artifact creation. Live
+node capacity is checked per node across all requested resources; summing CPU
+and custom resources independently could admit an impossible combination.
+Readiness waits are bounded; individual jobs have no deadline yet.
+
+An explicit GCS address or `auto` attaches to an existing cluster. An already
+initialized driver is rejected. Actors and driver connection are owned by the
+backend; an external cluster is owned by its administrator. Cleanup kills the
+experiment actors and disconnects. Ray shutdown also stops an owned local cluster.
+Actor restarts and task retries are explicitly zero. Ordinary engine errors are
+structured job failures; infrastructure errors abort without a final index.
+
+The pin also bounds one private API adapter: `_shutdown_ray` retains Ray's reaper
+Popen across shutdown and closes its leaked stdin only after the process exits.
+Direct strict-warning tests reproduced the leak in Ray 2.59.0. Closing a live
+reaper pipe would trigger fate sharing, so the adapter checks exit first. This
+adapter must be reviewed when updating Ray. Tests keep warnings as errors.
+
+All nodes require compatible Python/Ray versions and identical project source.
+Automatic deployment and Ray Client are absent. Operational diagnostics live in
+`execution.json`, outside job identity and semantic equality. See
+[ADR 0005](decisions/0005-ray-actor-execution.md) and
+[cluster setup](ray-clusters.md) for ownership and deployment contracts.
+
+## Ray measurement boundaries
+
+Its object store does not remove serialization, transfer, eviction, or spill
+costs. A local run cannot establish performance across physical machines.
+
+The implemented local comparison uses `ray_benchmark.py` and `ray_measurement.py`.
+It times fresh subprocesses including cluster creation and cleanup; warmed actor
+pool throughput is a separate boundary not measured here. Exact artifact digests
+and installed source identity are verified before accepting timings. Optional
+detail-file discard happens after exit and verification, outside the timer.
+
+Inventory ownership is established by a private process group, exact published
+session path, and PID/creation-time identities. Process names classify roles but
+never authorize cleanup. Workers and services outside the driver tree can be
+included. Raw per-process RSS is retained without summing shared mappings. USS
+is private resident memory only; aggregate values stay null when reads are
+denied. On this Mac, self USS is available while the observer's owned child USS
+reads are denied. Live object-store occupancy is not observed. Neither the
+logical serialized dataset size nor reserved store capacity is physical usage.
 
 Ray measurements must preserve the declared end-to-end timing boundary and
 identical successful job sets/output detail. Fresh-process and reused-pool
 measurements need distinct declared boundaries, with raw samples, failures, and
 exact environment records retained.
 
-For Ray, sample every declared node's drivers, workers,
+For a future multiple-machine benchmark, sample every declared node's drivers, workers,
 runtime services, and object-store observations, including processes outside the
 driver's child tree. Align timestamped node samples and report clock skew,
 missing data, and alignment uncertainty. Never sum independent process or node
@@ -609,6 +675,7 @@ shared mappings already included in RSS. RSS sums can count shared pages more
 than once and miss brief peaks; declare those limitations. The
 [benchmark methodology](benchmarking.md) defines the planned measurement scope.
 The five-bar example and test duration do not establish throughput or speedup.
+The current owned-local harness does not implement remote sampling or clock alignment.
 
 ## Planned recovery and storage guarantees
 

@@ -1,7 +1,8 @@
 # Benchmark methodology
 
 Phase 2 implements the local harness and publishes
-[recorded results and raw observations](benchmarks/phase-2/results.md). Later Ray
+[recorded results and raw observations](benchmarks/phase-2/results.md). Phase 3 adds
+the owned local Ray comparison harness below. Multiple-machine Ray
 metrics and optimization procedures below remain planned requirements.
 Run the harness with `python -m distributed_backtester.benchmark run --help`.
 Optional psutil 7.2.2 is required only for measurement.
@@ -122,3 +123,52 @@ Before an optimization, capture a baseline/profile with one stable manifest.
 Change one meaningful factor, preserve semantic output, and repeat measurements.
 Document regressions and ineffective changes as well as improvements. C++ or
 vectorization needs both profile evidence and semantic-equivalence checks.
+
+
+## Phase 3 owned local Ray harness
+
+Run `python -m distributed_backtester.ray_benchmark run --help`. Install
+`.[benchmark,distributed]` first. The runner compares sequential, process, and
+Ray configurations on the same interpreter, installed source, CSV, and unique
+jobs. The bounded SMA window/cash generator and deterministic seed are shared
+with Phase 2. Each configuration has one recorded warmup excluded from summaries;
+repeated fresh-process trials rotate configuration order.
+
+The outer timer starts before subprocess launch and stops at child exit. Ray
+trials include Ray import, owned cluster startup, dataset placement, actor
+readiness, simulation, IPC, detailed conversion/export, fsync, final index,
+backend shutdown, and exit. Generation and post-exit digest verification are
+excluded. Component times in execution diagnostics overlap coordinator timings;
+do not add overlapping intervals or equate them with worker CPU service time.
+No prestarted cluster throughput or CPU profile is inferred from cold runs.
+
+Every successful trial verifies expected source identity, complete all-success
+index, every detailed artifact digest, and semantic equality across trials.
+Failure observations are persisted before abort. The optional
+`--discard-trial-results` flag unlinks only newly created indexed detailed result
+files after verification. Metadata, logs, digests, removed paths/bytes, and all
+raw observations remain. Default runs retain details. This option limits disk
+use during repeated export-heavy workloads, without changing timed execution.
+
+Memory inventory uses the trial's private POSIX process group and exact owned
+Ray session/PID-creation identities, rather than the driver child tree alone.
+Service classification does not establish ownership. Records retain per-process
+RSS, USS, errors, roles, coverage, and sampling times. RSS is never summed across
+Ray mappings. Aggregate USS excludes shared pages and is a private-memory
+quantity, not total physical cluster memory. It remains null when observations
+are denied or incomplete; samples can miss transient peaks. Sampling also perturbs
+the timed command and is not a profiler.
+
+Logical serialized dataset size and configured object-store capacity are recorded
+separately. Live object-store occupancy and unique resident shared-store pages
+are not measured and are never added to private memory. Local observations cover
+one physical machine only. Remote cluster memory needs per-node agents and
+aligned observations; this runner deliberately has no external cluster option.
+A denied macOS process read is an environment limitation, not evidence of zero
+memory use. Reproduce on a permitted Linux host to establish additional coverage.
+
+Primary runs should use a clean committed source revision and record hardware,
+Python, all installed dependencies, thread settings, sample interval, seed, data
+hash, workload generator, repetitions, and completion digests. Keep historical
+Phase 2 measurements unchanged. New comparisons are the Phase 3 baseline, even
+when a workload happens to match Phase 2.
