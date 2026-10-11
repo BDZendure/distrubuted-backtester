@@ -1,5 +1,9 @@
 # Technical explanation
 
+For a focused systems discussion, read the [engineering deep dive](engineering-deep-dive.md).
+For measurement scope and interview claims, use the [benchmark synthesis](benchmark-results.md)
+and [portfolio summary](portfolio-summary.md). This document is the detailed implementation reference.
+
 ## Implemented scope and verification
 
 The Phase 1 engine implements a deterministic daily backtester for one asset,
@@ -35,7 +39,7 @@ ARM64 release checks. The [Phase 7 report](phase-7-report.md) and
 [verification record](phase-7-verification.json) record the final checks and
 limits. Remote CI and Linux AMD64 execution remain unobserved. The Phase 6
 measurements remain historical results from archived `0.7.0` wheels and their
-recorded source identities. Phase 8 is unapproved and requires explicit approval.
+recorded source identities. Phase 8 was explicitly approved for final portfolio documentation.
 
 ## Actual module boundaries
 
@@ -1144,7 +1148,7 @@ and the completed backend table, plus
 contracts. Final native, installed-wheel and Linux ARM64 runtime/dev checks
 passed; the [completion report](phase-7-report.md) records the evidence.
 Configured CI is not an observed CI result. Phase 8
-is unapproved. This section introduces no performance or memory measurements;
+was explicitly approved for final portfolio documentation. This section introduces no performance or memory measurements;
 the Phase 6 evidence above retains its archived `0.7.0` source and commit IDs.
 
 ### Flat TOML defaults and command preparation

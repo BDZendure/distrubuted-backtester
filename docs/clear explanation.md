@@ -1,5 +1,9 @@
 # Clear explanation
 
+Start with the commands below. The [short project overview](../README.md),
+[fresh-environment guide](reproducibility.md) and [interview summary](portfolio-summary.md)
+provide focused reading routes through the finished engineering.
+
 ## What the program does today
 
 A **backtest** replays historical prices and follows a trading rule. It records
@@ -8,7 +12,7 @@ The Phase 1 engine implements that replay for one asset, one daily price table,
 and one set of settings at a time. Phase 2 adds parameter sweeps that run many
 independent simulations sequentially or with local worker processes. Phase 3 adds
 Ray workers and connections to an existing cluster. The package version
-is `0.8.0`, with **Phase 7 complete**. Phase 8 has not been approved.
+is `0.8.0`, with **Phase 7 complete**. Phase 8 was approved for final portfolio documentation.
 
 You can run the command below and get a JSON result containing the settings,
 data fingerprint, trades, order outcomes, daily portfolio values, and summary
@@ -469,12 +473,12 @@ for the evidence and limitations.
 | Phase | Capability and current status |
 | --- | --- |
 | 7 | Operational tooling and an installed Docker environment; complete with native and Linux ARM64 verification |
-| 8 | Final documentation and portfolio evidence based on implemented facts; unapproved |
+| 8 | Final documentation and portfolio evidence based on implemented facts; approved |
 
 Phase 6 profiling and reviewed Python optimizations are available; the final
 backend comparison is verified. Those are historical Phase 6 results from the
 archived `0.7.0` source. Phase 7 has its own [verification report](phase-7-report.md), and Phase 8
-requires explicit approval. Phase 4 recovery does not promise coordinator high
+was approved for portfolio documentation. Phase 4 recovery does not promise coordinator high
 availability or recovery after disk loss. Several workers may be slower for small jobs, so
 scaling claims need actual measurements.
 
@@ -749,7 +753,7 @@ verified implementation. The final native suite passed 1,928 tests, and the
 installed core and Linux ARM64 container helpers passed. See the
 [completion report](phase-7-report.md) and
 [verification record](phase-7-verification.json) for exact checks and limits.
-Phase 8 requires explicit approval. The Phase 6 measurements above
+Phase 8 documentation was explicitly approved. The Phase 6 measurements above
 remain results from their archived `0.7.0` implementations.
 
 ### Use a settings file in Terminal or VS Code
@@ -956,4 +960,39 @@ recovery. See the [Phase 7 report](phase-7-report.md).
 Remote CI, Linux AMD64, the complete Linux dev-image test suite, Docker Desktop
 bind-filesystem durability, power-loss recovery and external-cluster behavior
 remain unobserved. These container checks
-do not add speed or memory measurements, or approval for Phase 8.
+do not add speed or memory measurements. Phase 8 approval was a separate user decision.
+
+## Phase 8: explaining the engineering
+
+The final documentation makes the work easier to review and discuss. The
+[deep dive](engineering-deep-dive.md) explains how the engine, workers and journal
+fit together; the [interview guide](portfolio-summary.md) gives a short summary
+and three resume bullet candidates. The
+[benchmark overview](benchmark-results.md) links the measurements, and the
+[failure demonstration](fault-tolerance-demo.md) explains how to reproduce recovery.
+
+### Reading a performance claim
+
+A speedup of 1.433x means the earlier run took 1.433 times as long for the same
+measured workload. In the archived Phase 6 sequential comparison, the median
+went from 3.821517 seconds to 2.667269 seconds for 32 jobs with 16,384 bars each.
+That is about 30.20% less elapsed time. It does not mean every backend or
+computer gets the same improvement. Ray was slower in those cold-start samples.
+These are historical measurements; writing new documentation does not measure
+the current release again.
+
+### Explaining a recovered job
+
+A worker might finish a calculation and stop before the driver hears its reply.
+The driver can run that job again. The journal checks its stable identity and
+attempt before committing, so another calculation does not mean another
+committed result. This is called at-least-once execution with an idempotent
+commit. It is a precise guarantee for the supported local system.
+
+### Presenting the project honestly
+
+Describe what you built, how you checked it, what the measurements showed and
+what remains limited. The interesting interview discussion includes why more
+workers sometimes lose, why money is represented exactly, and why logs cannot
+replace saved state. Use the [limitations](limitations.md) and
+[completion report](phase-8-report.md) when describing the boundary of the work.
