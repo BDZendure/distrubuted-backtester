@@ -2,27 +2,24 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from hashlib import sha256
 from pathlib import Path
 from time import perf_counter
 
 from distributed_backtester.backends.base import ExecutionBackend
 from distributed_backtester.data import load_csv
-from distributed_backtester.jobs import (
-    JobSpec,
-    canonical_json,
-    expand_grid,
-    metadata_record,
+from distributed_backtester.experiment_artifacts import (
+    index_record,
+    manifest_record,
+    outcome_artifact,
 )
+from distributed_backtester.jobs import JobSpec, canonical_json, expand_grid
 from distributed_backtester.models import MarketDataset
 from distributed_backtester.provenance import (
     ImplementationIdentity,
     capture_environment,
     current_implementation,
 )
-from distributed_backtester.results import metrics_record, result_to_dict, write_text
-from distributed_backtester.simulation import SMA_ID
-from distributed_backtester.worker import JobOutcome
+from distributed_backtester.results import write_text
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,19 +31,6 @@ class ExperimentSummary:
     index_path: Path
     execution_path: Path
     elapsed_seconds: float
-
-
-def _validate_outcome(outcome: JobOutcome, job: JobSpec) -> None:
-    result = outcome.result
-    if result is not None and (
-        result.config != job.config
-        or result.dataset_metadata != job.dataset
-        or result.engine_id != job.implementation.engine_id
-        or result.strategy_id != SMA_ID
-        or type(result.schema_version) is not int
-        or result.schema_version != 1
-    ):
-        raise RuntimeError(f"result does not match job {job.job_id}")
 
 
 def collect_experiment(
@@ -72,28 +56,10 @@ def collect_experiment(
     start = perf_counter() if started is None else started
     manifest_started = perf_counter()
     expected = {job.job_id: job for job in jobs}
-    if not jobs or len(expected) != len(jobs):
-        raise ValueError("an experiment needs nonempty, unique job IDs")
-    members = list(expected) if membership is None else list(membership)
-    if set(members) != set(expected):
-        raise ValueError("membership must reference all and only submitted jobs")
-    ordered_jobs = [expected[key].to_dict() for key in sorted(expected)]
-    payload = {
-        "schema_version": 1,
-        "dataset": metadata_record(dataset.metadata),
-        "implementation": {
-            "engine_id": implementation.engine_id,
-            "source_sha256": implementation.source_sha256,
-        },
-        "jobs": ordered_jobs,
-        "grid_membership": members,
-    }
-    experiment_id = sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+    manifest = manifest_record(jobs, dataset.metadata, implementation, membership)
+    experiment_id = str(manifest["experiment_id"])
     output.mkdir(parents=True, exist_ok=False)
-    write_text(
-        canonical_json({"experiment_id": experiment_id, **payload}) + "\n",
-        output / "manifest.json",
-    )
+    write_text(canonical_json(manifest) + "\n", output / "manifest.json")
     records: dict[str, dict[str, object]] = {}
     timings = dict(setup_timings or {})
     timings["manifest_prepare_export_seconds"] = perf_counter() - manifest_started
@@ -116,46 +82,9 @@ def collect_experiment(
             if outcome.job_id not in expected or outcome.job_id in records:
                 raise RuntimeError(f"unknown or duplicate outcome: {outcome.job_id}")
             job = expected[outcome.job_id]
-            _validate_outcome(outcome, job)
-            failure = (
-                {
-                    "error_type": outcome.failure.error_type,
-                    "message": outcome.failure.message,
-                }
-                if outcome.failure is not None
-                else None
-            )
-            status = "succeeded" if outcome.result is not None else "failed"
-            artifact = f"results/{outcome.job_id}.json"
-            content = (
-                canonical_json(
-                    {
-                        "schema_version": 1,
-                        "job": job.to_dict(),
-                        "status": status,
-                        "result": (
-                            result_to_dict(outcome.result)
-                            if outcome.result is not None
-                            else None
-                        ),
-                        "failure": failure,
-                    }
-                )
-                + "\n"
-            )
-            write_text(content, output / artifact)
-            records[outcome.job_id] = {
-                "job_id": outcome.job_id,
-                "status": status,
-                "artifact": artifact,
-                "content_sha256": sha256(content.encode("utf-8")).hexdigest(),
-                "metrics": (
-                    metrics_record(outcome.result.metrics)
-                    if outcome.result is not None
-                    else None
-                ),
-                "failure": failure,
-            }
+            content, record = outcome_artifact(job, outcome)
+            write_text(content, output / str(record["artifact"]))
+            records[outcome.job_id] = record
             del content, outcome
             export_seconds += perf_counter() - exporting
     finally:
@@ -192,17 +121,7 @@ def collect_experiment(
     )
     index_path = output / "index.json"
     write_text(
-        canonical_json(
-            {
-                "schema_version": 1,
-                "experiment_id": experiment_id,
-                "submitted": len(jobs),
-                "succeeded": succeeded,
-                "failed": len(jobs) - succeeded,
-                "outcomes": [records[key] for key in sorted(records)],
-            }
-        )
-        + "\n",
+        canonical_json(index_record(experiment_id, list(records.values()))) + "\n",
         index_path,
     )
     return ExperimentSummary(

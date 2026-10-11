@@ -3,6 +3,7 @@
 import importlib
 import math
 import os
+import sys
 from collections.abc import Generator, Mapping, Sequence
 from time import perf_counter
 from types import ModuleType
@@ -160,6 +161,157 @@ def _capacity(nodes: Sequence[Mapping[str, Any]], requests: Mapping[str, float])
     return slots
 
 
+class _RayPool:
+    """Own a driver connection, shared dataset and only this pool's actors."""
+
+    def __init__(
+        self,
+        backend: "RayBackend",
+        dataset: MarketDataset,
+        implementation: ImplementationIdentity,
+        *,
+        worker_type: type[_SimulationWorker] | None = None,
+    ) -> None:
+        self.backend = backend
+        self.dataset = dataset
+        self.implementation = implementation
+        self.worker_type = worker_type
+        self.ray: ModuleType
+        self.actor_class: _ActorClass
+        self.shared_dataset: object = None
+        self.actors: list[_Actor] = []
+        self.timings: dict[str, float] = {}
+        self.cleanup_errors: list[str] = []
+        self.diagnostics: dict[str, object] = {
+            "timings": self.timings,
+            "cleanup_errors": self.cleanup_errors,
+        }
+        self._owns_connection = False
+        self._closed = False
+
+    def start(self) -> None:
+        backend = self.backend
+        ray = self.ray = _require_ray()
+        if ray.is_initialized():
+            raise RuntimeError(
+                "Ray driver is already initialized; use a separate driver"
+            )
+        local_owned = backend.address in (None, "local")
+        start = perf_counter()
+        options: dict[str, object] = {
+            "address": "local" if local_owned else backend.address,
+            "include_dashboard": False,
+            "log_to_driver": False,
+            "logging_level": "ERROR",
+        }
+        if local_owned:
+            options.update(
+                num_cpus=_local_cpu_budget(backend.workers, backend.cpus_per_worker),
+                num_gpus=0,
+                resources={
+                    key: _local_resource_budget(backend.workers, amount)
+                    for key, amount in backend.resources.items()
+                },
+                object_store_memory=backend.object_store_memory or DEFAULT_STORE_BYTES,
+            )
+        # Own partial initialization too; never take over an existing driver.
+        self._owns_connection = True
+        context = ray.init(**options)
+        self.timings["startup_seconds"] = perf_counter() - start
+        nodes = ray.nodes()
+        requests = {"CPU": backend.cpus_per_worker, **backend.resources}
+        if _capacity(nodes, requests) < backend.workers:
+            raise RuntimeError(
+                "live cluster nodes cannot fit the requested Ray workers/resources"
+            )
+        self.diagnostics.update(
+            local_owned=local_owned,
+            ray_version=RAY_VERSION,
+            session_dir=context.address_info.get("session_dir"),
+            address=context.address_info.get("gcs_address"),
+            cpus_per_worker=backend.cpus_per_worker,
+            resources_per_worker=backend.resources.copy(),
+            max_restarts=0,
+            max_task_retries=0,
+            nodes=[
+                {
+                    "node_id": node["NodeID"],
+                    "address": node["NodeManagerAddress"],
+                    "resources": node["Resources"],
+                }
+                for node in nodes
+                if node.get("Alive")
+            ],
+            object_store_capacity_bytes=sum(
+                int(node["Resources"].get("object_store_memory", 0))
+                for node in nodes
+                if node.get("Alive")
+            ),
+        )
+        putting = perf_counter()
+        self.diagnostics["dataset_serialized_bytes"] = len(
+            importlib.import_module("ray.cloudpickle").dumps(self.dataset)
+        )
+        self.shared_dataset = ray.put(self.dataset)
+        self.timings["dataset_put_seconds"] = perf_counter() - putting
+        creating = perf_counter()
+        self.actor_class = cast(
+            _ActorClass,
+            ray.remote(self.worker_type or _SimulationWorker).options(
+                num_cpus=backend.cpus_per_worker,
+                resources=backend.resources,
+                max_restarts=0,
+                max_task_retries=0,
+                scheduling_strategy="SPREAD",
+            ),
+        )
+        for _ in range(backend.workers):
+            self.create_actor()
+        self.diagnostics["workers"] = ray.get(
+            [actor.ready.remote() for actor in self.actors],
+            timeout=backend.startup_timeout_seconds,
+        )
+        self.timings["actors_ready_seconds"] = perf_counter() - creating
+
+    def create_actor(self) -> _Actor:
+        actor = self.actor_class.remote(self.shared_dataset, self.implementation)
+        self.actors.append(actor)
+        return actor
+
+    def retire(self, actor: _Actor) -> None:
+        self.ray.kill(actor, no_restart=True)
+        self.actors.remove(actor)
+
+    def close(self, *, primary_error: BaseException | None = None) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        if not self._owns_connection:
+            return
+        stopping = perf_counter()
+        for actor in self.actors:
+            try:
+                self.ray.kill(actor, no_restart=True)
+            except Exception as error:
+                self.cleanup_errors.append(f"{type(error).__name__}: {error}")
+        self.actors.clear()
+        self.shared_dataset = None
+        try:
+            _shutdown_ray(self.ray)
+        except Exception as error:
+            self.cleanup_errors.append(f"{type(error).__name__}: {error}")
+        finally:
+            self._owns_connection = False
+            self.timings["shutdown_seconds"] = perf_counter() - stopping
+        if self.cleanup_errors:
+            message = "Ray cleanup failed: " + "; ".join(self.cleanup_errors)
+            if primary_error is not None:
+                raise RuntimeError(
+                    f"{type(primary_error).__name__}: {primary_error}; {message}"
+                ) from primary_error
+            raise RuntimeError(message)
+
+
 class RayBackend:
     name = "ray"
 
@@ -229,92 +381,13 @@ class RayBackend:
         self.diagnostics = {}
         if not jobs:
             return
-        ray = _require_ray()
-        if ray.is_initialized():
-            raise RuntimeError(
-                "Ray driver is already initialized; use a separate driver"
-            )
-        actors: list[_Actor] = []
+        pool = _RayPool(self, dataset, implementation)
+        self.diagnostics = pool.diagnostics
         pending: dict[object, str] = {}
-        local_owned = self.address in (None, "local")
-        timings: dict[str, float] = {}
-        cleanup_errors: list[str] = []
         try:
-            start = perf_counter()
-            options: dict[str, object] = {
-                "address": "local" if local_owned else self.address,
-                "include_dashboard": False,
-                "log_to_driver": False,
-                "logging_level": "ERROR",
-            }
-            if local_owned:
-                options.update(
-                    num_cpus=_local_cpu_budget(self.workers, self.cpus_per_worker),
-                    num_gpus=0,
-                    resources={
-                        key: _local_resource_budget(self.workers, amount)
-                        for key, amount in self.resources.items()
-                    },
-                    object_store_memory=self.object_store_memory or DEFAULT_STORE_BYTES,
-                )
-            context = ray.init(**options)
-            timings["startup_seconds"] = perf_counter() - start
-            nodes = ray.nodes()
-            requests = {"CPU": self.cpus_per_worker, **self.resources}
-            if _capacity(nodes, requests) < self.workers:
-                raise RuntimeError(
-                    "live cluster nodes cannot fit the requested Ray workers/resources"
-                )
-            self.diagnostics = {
-                "local_owned": local_owned,
-                "ray_version": RAY_VERSION,
-                "session_dir": context.address_info.get("session_dir"),
-                "address": context.address_info.get("gcs_address"),
-                "cpus_per_worker": self.cpus_per_worker,
-                "resources_per_worker": self.resources.copy(),
-                "max_restarts": 0,
-                "max_task_retries": 0,
-                "nodes": [
-                    {
-                        "node_id": node["NodeID"],
-                        "address": node["NodeManagerAddress"],
-                        "resources": node["Resources"],
-                    }
-                    for node in nodes
-                    if node.get("Alive")
-                ],
-                "object_store_capacity_bytes": sum(
-                    int(node["Resources"].get("object_store_memory", 0))
-                    for node in nodes
-                    if node.get("Alive")
-                ),
-                "timings": timings,
-                "cleanup_errors": cleanup_errors,
-            }
-            putting = perf_counter()
-            self.diagnostics["dataset_serialized_bytes"] = len(
-                importlib.import_module("ray.cloudpickle").dumps(dataset)
-            )
-            shared_dataset = ray.put(dataset)
-            timings["dataset_put_seconds"] = perf_counter() - putting
-            creating = perf_counter()
-            actor_class = cast(
-                _ActorClass,
-                ray.remote(_SimulationWorker).options(
-                    num_cpus=self.cpus_per_worker,
-                    resources=self.resources,
-                    max_restarts=0,
-                    max_task_retries=0,
-                    scheduling_strategy="SPREAD",
-                ),
-            )
-            for _ in range(self.workers):
-                actors.append(actor_class.remote(shared_dataset, implementation))
-            self.diagnostics["workers"] = ray.get(
-                [actor.ready.remote() for actor in actors],
-                timeout=self.startup_timeout_seconds,
-            )
-            timings["actors_ready_seconds"] = perf_counter() - creating
+            pool.start()
+            ray = pool.ray
+            actors = pool.actors
             iterator = iter(jobs)
             exhausted = False
             next_actor = 0
@@ -347,14 +420,11 @@ class RayBackend:
         except Exception as error:
             raise RuntimeError(f"Ray execution failed: {error}") from error
         finally:
-            stopping = perf_counter()
-            # Kill only this experiment's actors. No cluster-wide ray stop call.
-            for actor in actors:
-                try:
-                    ray.kill(actor, no_restart=True)
-                except Exception as error:
-                    cleanup_errors.append(f"{type(error).__name__}: {error}")
             pending.clear()
-            actors.clear()
-            _shutdown_ray(ray)
-            timings["shutdown_seconds"] = perf_counter() - stopping
+            primary_error = sys.exception()
+            if isinstance(primary_error, GeneratorExit):
+                # The collector closes this generator while unwinding an
+                # export failure. GeneratorExit carries that outer error in
+                # its context; include it if pool cleanup also fails.
+                primary_error = primary_error.__context__
+            pool.close(primary_error=primary_error)

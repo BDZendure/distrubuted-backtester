@@ -21,6 +21,7 @@ from typing import NoReturn, cast
 import pytest
 
 from distributed_backtester.backends import ray as ray_backend
+from distributed_backtester.cli import main
 from distributed_backtester.data import load_csv
 from distributed_backtester.experiments import collect_experiment
 from distributed_backtester.jobs import JobSpec, create_job
@@ -121,6 +122,7 @@ class _FakeRay(ModuleType):
     def __init__(self) -> None:
         super().__init__("ray")
         self.fault = ""
+        self.cleanup_fault = ""
         self.initialized = False
         self.actors: list[_FakeActor] = []
         self.killed: list[_FakeActor] = []
@@ -183,10 +185,14 @@ class _FakeRay(ModuleType):
     def kill(self, actor: _FakeActor, *, no_restart: bool) -> None:
         assert no_restart
         self.killed.append(actor)
+        if self.cleanup_fault == "kill":
+            raise RuntimeError("injected cleanup kill failure")
 
     def shutdown(self) -> None:
         self.initialized = False
         self.shutdowns += 1
+        if self.cleanup_fault == "shutdown":
+            raise RuntimeError("injected cleanup shutdown failure")
 
 
 @pytest.fixture
@@ -283,6 +289,43 @@ def test_pure_export_failure_closes_live_backend(
             jobs, data, identity, output, ray_backend.RayBackend(2, max_in_flight=3)
         )
     assert len(list((output / "results").glob("*.json"))) == 1
+    assert not (output / "index.json").exists()
+    assert not (output / "execution.json").exists()
+    _assert_cleaned(fake_ray)
+
+
+@pytest.mark.parametrize("cleanup", ["kill", "shutdown"])
+@pytest.mark.parametrize("primary", ["actor-death", "readiness-timeout", "export"])
+def test_pure_cli_reports_primary_failure_and_cleanup(
+    tmp_path: Path,
+    fake_ray: _FakeRay,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    primary: str,
+    cleanup: str,
+) -> None:
+    from tests.test_sweep_cli import arguments
+
+    fake_ray.cleanup_fault = cleanup
+    expected = "actor death" if primary == "actor-death" else "readiness timeout"
+    if primary == "export":
+        expected = "injected export disk full"
+
+        def fail_export(text: str, path: Path, *, overwrite: bool = False) -> None:
+            if path.parent.name == "results":
+                raise OSError(expected)
+            write_text(text, path, overwrite=overwrite)
+
+        monkeypatch.setattr(
+            "distributed_backtester.experiments.write_text", fail_export
+        )
+    else:
+        fake_ray.fault = primary
+    output = tmp_path / "cli"
+    assert main([*arguments(output), "--backend", "ray", "--workers", "2"]) == 2
+    message = capsys.readouterr().err
+    assert expected in message
+    assert f"injected cleanup {cleanup} failure" in message
     assert not (output / "index.json").exists()
     assert not (output / "execution.json").exists()
     _assert_cleaned(fake_ray)
