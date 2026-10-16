@@ -237,6 +237,8 @@ def _owner(nodes: int, directory: Path) -> None:
     processes: list[subprocess.Popen[bytes]] = []
     reapers: list[subprocess.Popen[bytes]] = []
     try:
+        # Let Ray choose the node address: Linux drivers resolve loopback GCS
+        # addresses to the host IP, so forcing loopback would prevent attachment.
         for _ in range(nodes):
             cluster.add_node(
                 num_cpus=1,
@@ -244,7 +246,6 @@ def _owner(nodes: int, directory: Path) -> None:
                 resources={"backtest": 1},
                 object_store_memory=_STORE_BYTES,
                 include_dashboard=False,
-                node_ip_address="127.0.0.1",
             )
         cluster.wait_for_nodes(timeout=_WAIT_SECONDS)
         assert cluster.address is not None

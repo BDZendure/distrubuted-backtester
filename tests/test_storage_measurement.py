@@ -295,7 +295,7 @@ def test_spawn_transfer_uses_spawn_and_reaps_on_bad_ack(
         def Pipe(self) -> tuple[Connection, Connection]:
             return Connection(), Connection()
 
-        def Process(self, **kwargs: Any) -> Process:
+        def Process(self, **kwargs: Any) -> "Process":
             return Process()
 
     def context(name: str) -> Context:
@@ -351,7 +351,7 @@ def test_spawn_transfer_failed_exit_preserves_verified_child_report(
         def Pipe(self) -> tuple[Connection, Connection]:
             return Connection(), Connection()
 
-        def Process(self, **kwargs: Any) -> Process:
+        def Process(self, **kwargs: Any) -> "Process":
             return Process()
 
     monkeypatch.setattr(
@@ -395,7 +395,7 @@ def test_transfer_sender_start_failure_preserves_original_diagnostic(
         def Pipe(self) -> tuple[Connection, Connection]:
             return Connection(), Connection()
 
-        def Process(self, **kwargs: Any) -> Process:
+        def Process(self, **kwargs: Any) -> "Process":
             return Process()
 
     class Thread:
@@ -483,7 +483,7 @@ def test_transfer_interruption_terminates_and_reaps_owned_child(
         def Pipe(self) -> tuple[Connection, Connection]:
             return Connection(), Connection()
 
-        def Process(self, **kwargs: Any) -> Process:
+        def Process(self, **kwargs: Any) -> "Process":
             return Process()
 
     monkeypatch.setattr(
