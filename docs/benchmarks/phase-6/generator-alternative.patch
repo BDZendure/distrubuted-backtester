@@ -1,0 +1,16 @@
+diff --git a/src/distributed_backtester/models.py b/src/distributed_backtester/models.py
+index 4220122..2ce3537 100644
+--- a/src/distributed_backtester/models.py
++++ b/src/distributed_backtester/models.py
+@@ -177,7 +177,10 @@ class CloseHistory(Sequence[CloseObservation]):
+         self, index: int | slice
+     ) -> CloseObservation | tuple[CloseObservation, ...]:
+         if isinstance(index, slice):
+-            return tuple(self[i] for i in range(*index.indices(self._length)))
++            indices = range(*index.indices(self._length))
++            if type(self) is CloseHistory and type(self._observations) in (list, tuple):
++                return tuple(self._observations[i] for i in indices)
++            return tuple(self[i] for i in indices)
+         position = index if index >= 0 else self._length + index
+         if not 0 <= position < self._length:
+             raise IndexError("close observation outside available history")

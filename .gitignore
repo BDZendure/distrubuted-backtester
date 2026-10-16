@@ -1,0 +1,25 @@
+# Python environments and generated files
+.venv/
+.venv-*/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Generated experiments and downloaded data (synthetic fixtures remain tracked)
+artifacts/
+data/raw/
+
+# Local editor and operating-system files
+.DS_Store
+.idea/
+.vscode/
+
+# Local planning/review scratch files
+.superpowers/

@@ -1,0 +1,568 @@
+{
+  "reason": "Free space for paired retained backend benchmark exports",
+  "removed_artifacts": [
+    {
+      "bytes": 10978495,
+      "content_sha256": "0745b1a87dcb907fdbf36842a913aa59fe016ab1cc804a3ce2a4881e834f3ab7",
+      "path": "/private/tmp/phase6-evidence/baseline-cpu-experiment/experiment-1/results/5162a401ef08b6f2d8b86ba555aa35b8a548b1f07e572d848526f25d48a46aa7.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "10dc2a11511ec1935873f398c324ba39ec3160c16975686a42bfb796349756ec",
+      "path": "/private/tmp/phase6-evidence/baseline-cpu-experiment/experiment-1/results/7e4f4a52777996c0654dbb7003152841a892aa8529d5326a705ba0ab8f4ccb5e.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "475100e4d41f66333dee451832a943cd268f3b3ddf05689dafd5edbfbdff3abf",
+      "path": "/private/tmp/phase6-evidence/baseline-cpu-experiment/experiment-1/results/bacc83a28e709069f3ba0585fa01f03dc1536c0bb250f6e1553a901618a40c16.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "e3d9b09aaa215a266d0270d43068d2f6569b03e0dcc72dcae4811e92f9323405",
+      "path": "/private/tmp/phase6-evidence/baseline-cpu-experiment/experiment-1/results/c51dd3fe772f4cc1c5890c689053de114c2c839d75d50927379ded1853c6a164.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "0745b1a87dcb907fdbf36842a913aa59fe016ab1cc804a3ce2a4881e834f3ab7",
+      "path": "/private/tmp/phase6-evidence/baseline-memory-experiment/experiment-1/results/5162a401ef08b6f2d8b86ba555aa35b8a548b1f07e572d848526f25d48a46aa7.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "10dc2a11511ec1935873f398c324ba39ec3160c16975686a42bfb796349756ec",
+      "path": "/private/tmp/phase6-evidence/baseline-memory-experiment/experiment-1/results/7e4f4a52777996c0654dbb7003152841a892aa8529d5326a705ba0ab8f4ccb5e.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "475100e4d41f66333dee451832a943cd268f3b3ddf05689dafd5edbfbdff3abf",
+      "path": "/private/tmp/phase6-evidence/baseline-memory-experiment/experiment-1/results/bacc83a28e709069f3ba0585fa01f03dc1536c0bb250f6e1553a901618a40c16.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "e3d9b09aaa215a266d0270d43068d2f6569b03e0dcc72dcae4811e92f9323405",
+      "path": "/private/tmp/phase6-evidence/baseline-memory-experiment/experiment-1/results/c51dd3fe772f4cc1c5890c689053de114c2c839d75d50927379ded1853c6a164.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "0745b1a87dcb907fdbf36842a913aa59fe016ab1cc804a3ce2a4881e834f3ab7",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-1/results/5162a401ef08b6f2d8b86ba555aa35b8a548b1f07e572d848526f25d48a46aa7.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "10dc2a11511ec1935873f398c324ba39ec3160c16975686a42bfb796349756ec",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-1/results/7e4f4a52777996c0654dbb7003152841a892aa8529d5326a705ba0ab8f4ccb5e.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "475100e4d41f66333dee451832a943cd268f3b3ddf05689dafd5edbfbdff3abf",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-1/results/bacc83a28e709069f3ba0585fa01f03dc1536c0bb250f6e1553a901618a40c16.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "e3d9b09aaa215a266d0270d43068d2f6569b03e0dcc72dcae4811e92f9323405",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-1/results/c51dd3fe772f4cc1c5890c689053de114c2c839d75d50927379ded1853c6a164.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "0745b1a87dcb907fdbf36842a913aa59fe016ab1cc804a3ce2a4881e834f3ab7",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-2/results/5162a401ef08b6f2d8b86ba555aa35b8a548b1f07e572d848526f25d48a46aa7.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "10dc2a11511ec1935873f398c324ba39ec3160c16975686a42bfb796349756ec",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-2/results/7e4f4a52777996c0654dbb7003152841a892aa8529d5326a705ba0ab8f4ccb5e.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "475100e4d41f66333dee451832a943cd268f3b3ddf05689dafd5edbfbdff3abf",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-2/results/bacc83a28e709069f3ba0585fa01f03dc1536c0bb250f6e1553a901618a40c16.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "e3d9b09aaa215a266d0270d43068d2f6569b03e0dcc72dcae4811e92f9323405",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-2/results/c51dd3fe772f4cc1c5890c689053de114c2c839d75d50927379ded1853c6a164.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "0745b1a87dcb907fdbf36842a913aa59fe016ab1cc804a3ce2a4881e834f3ab7",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-3/results/5162a401ef08b6f2d8b86ba555aa35b8a548b1f07e572d848526f25d48a46aa7.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "10dc2a11511ec1935873f398c324ba39ec3160c16975686a42bfb796349756ec",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-3/results/7e4f4a52777996c0654dbb7003152841a892aa8529d5326a705ba0ab8f4ccb5e.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "475100e4d41f66333dee451832a943cd268f3b3ddf05689dafd5edbfbdff3abf",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-3/results/bacc83a28e709069f3ba0585fa01f03dc1536c0bb250f6e1553a901618a40c16.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "e3d9b09aaa215a266d0270d43068d2f6569b03e0dcc72dcae4811e92f9323405",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-3/results/c51dd3fe772f4cc1c5890c689053de114c2c839d75d50927379ded1853c6a164.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "0745b1a87dcb907fdbf36842a913aa59fe016ab1cc804a3ce2a4881e834f3ab7",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-4/results/5162a401ef08b6f2d8b86ba555aa35b8a548b1f07e572d848526f25d48a46aa7.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "10dc2a11511ec1935873f398c324ba39ec3160c16975686a42bfb796349756ec",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-4/results/7e4f4a52777996c0654dbb7003152841a892aa8529d5326a705ba0ab8f4ccb5e.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "475100e4d41f66333dee451832a943cd268f3b3ddf05689dafd5edbfbdff3abf",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-4/results/bacc83a28e709069f3ba0585fa01f03dc1536c0bb250f6e1553a901618a40c16.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "e3d9b09aaa215a266d0270d43068d2f6569b03e0dcc72dcae4811e92f9323405",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-4/results/c51dd3fe772f4cc1c5890c689053de114c2c839d75d50927379ded1853c6a164.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "0745b1a87dcb907fdbf36842a913aa59fe016ab1cc804a3ce2a4881e834f3ab7",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-5/results/5162a401ef08b6f2d8b86ba555aa35b8a548b1f07e572d848526f25d48a46aa7.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "10dc2a11511ec1935873f398c324ba39ec3160c16975686a42bfb796349756ec",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-5/results/7e4f4a52777996c0654dbb7003152841a892aa8529d5326a705ba0ab8f4ccb5e.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "475100e4d41f66333dee451832a943cd268f3b3ddf05689dafd5edbfbdff3abf",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-5/results/bacc83a28e709069f3ba0585fa01f03dc1536c0bb250f6e1553a901618a40c16.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "e3d9b09aaa215a266d0270d43068d2f6569b03e0dcc72dcae4811e92f9323405",
+      "path": "/private/tmp/phase6-evidence/baseline-timing-experiment/experiment-5/results/c51dd3fe772f4cc1c5890c689053de114c2c839d75d50927379ded1853c6a164.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "7f7766b8d1d70195c6824e6e0cd1559c3ff143d549460427a9738929b1861860",
+      "path": "/private/tmp/phase6-evidence/generator-cpu-experiment/experiment-1/results/27338e72b0f75a543a1a390b4014f89e53f9db76d87352f506ff1ae3bbcd1a39.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "5b5779c644b56a331dfc33a8c4523330a24c2617f314d256f2b46e876bdb305e",
+      "path": "/private/tmp/phase6-evidence/generator-cpu-experiment/experiment-1/results/635decee90dbff9e9ff41018534c181866b76cca4522ea3484f6d6913225a6ad.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "7d2ba75c78141e66ac4c3fed1742f8c9ef711fb2ee2d46ef736efc86b3e08d61",
+      "path": "/private/tmp/phase6-evidence/generator-cpu-experiment/experiment-1/results/c61649c8c335c2dacefff9acddcdb7251496235e14b5d31ce33e3fae6183e3c3.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "3e3ec2fbe95134192ab0a0f631197f34166704db83f8fabd74ac059dd51e7684",
+      "path": "/private/tmp/phase6-evidence/generator-cpu-experiment/experiment-1/results/f91f62b847fa4bc429a4be1cafe0334f682b90975d560eb29ca6a485ed3e7abd.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "7f7766b8d1d70195c6824e6e0cd1559c3ff143d549460427a9738929b1861860",
+      "path": "/private/tmp/phase6-evidence/generator-memory-experiment/experiment-1/results/27338e72b0f75a543a1a390b4014f89e53f9db76d87352f506ff1ae3bbcd1a39.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "5b5779c644b56a331dfc33a8c4523330a24c2617f314d256f2b46e876bdb305e",
+      "path": "/private/tmp/phase6-evidence/generator-memory-experiment/experiment-1/results/635decee90dbff9e9ff41018534c181866b76cca4522ea3484f6d6913225a6ad.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "7d2ba75c78141e66ac4c3fed1742f8c9ef711fb2ee2d46ef736efc86b3e08d61",
+      "path": "/private/tmp/phase6-evidence/generator-memory-experiment/experiment-1/results/c61649c8c335c2dacefff9acddcdb7251496235e14b5d31ce33e3fae6183e3c3.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "3e3ec2fbe95134192ab0a0f631197f34166704db83f8fabd74ac059dd51e7684",
+      "path": "/private/tmp/phase6-evidence/generator-memory-experiment/experiment-1/results/f91f62b847fa4bc429a4be1cafe0334f682b90975d560eb29ca6a485ed3e7abd.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "7f7766b8d1d70195c6824e6e0cd1559c3ff143d549460427a9738929b1861860",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-1/results/27338e72b0f75a543a1a390b4014f89e53f9db76d87352f506ff1ae3bbcd1a39.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "5b5779c644b56a331dfc33a8c4523330a24c2617f314d256f2b46e876bdb305e",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-1/results/635decee90dbff9e9ff41018534c181866b76cca4522ea3484f6d6913225a6ad.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "7d2ba75c78141e66ac4c3fed1742f8c9ef711fb2ee2d46ef736efc86b3e08d61",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-1/results/c61649c8c335c2dacefff9acddcdb7251496235e14b5d31ce33e3fae6183e3c3.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "3e3ec2fbe95134192ab0a0f631197f34166704db83f8fabd74ac059dd51e7684",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-1/results/f91f62b847fa4bc429a4be1cafe0334f682b90975d560eb29ca6a485ed3e7abd.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "7f7766b8d1d70195c6824e6e0cd1559c3ff143d549460427a9738929b1861860",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-2/results/27338e72b0f75a543a1a390b4014f89e53f9db76d87352f506ff1ae3bbcd1a39.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "5b5779c644b56a331dfc33a8c4523330a24c2617f314d256f2b46e876bdb305e",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-2/results/635decee90dbff9e9ff41018534c181866b76cca4522ea3484f6d6913225a6ad.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "7d2ba75c78141e66ac4c3fed1742f8c9ef711fb2ee2d46ef736efc86b3e08d61",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-2/results/c61649c8c335c2dacefff9acddcdb7251496235e14b5d31ce33e3fae6183e3c3.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "3e3ec2fbe95134192ab0a0f631197f34166704db83f8fabd74ac059dd51e7684",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-2/results/f91f62b847fa4bc429a4be1cafe0334f682b90975d560eb29ca6a485ed3e7abd.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "7f7766b8d1d70195c6824e6e0cd1559c3ff143d549460427a9738929b1861860",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-3/results/27338e72b0f75a543a1a390b4014f89e53f9db76d87352f506ff1ae3bbcd1a39.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "5b5779c644b56a331dfc33a8c4523330a24c2617f314d256f2b46e876bdb305e",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-3/results/635decee90dbff9e9ff41018534c181866b76cca4522ea3484f6d6913225a6ad.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "7d2ba75c78141e66ac4c3fed1742f8c9ef711fb2ee2d46ef736efc86b3e08d61",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-3/results/c61649c8c335c2dacefff9acddcdb7251496235e14b5d31ce33e3fae6183e3c3.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "3e3ec2fbe95134192ab0a0f631197f34166704db83f8fabd74ac059dd51e7684",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-3/results/f91f62b847fa4bc429a4be1cafe0334f682b90975d560eb29ca6a485ed3e7abd.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "7f7766b8d1d70195c6824e6e0cd1559c3ff143d549460427a9738929b1861860",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-4/results/27338e72b0f75a543a1a390b4014f89e53f9db76d87352f506ff1ae3bbcd1a39.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "5b5779c644b56a331dfc33a8c4523330a24c2617f314d256f2b46e876bdb305e",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-4/results/635decee90dbff9e9ff41018534c181866b76cca4522ea3484f6d6913225a6ad.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "7d2ba75c78141e66ac4c3fed1742f8c9ef711fb2ee2d46ef736efc86b3e08d61",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-4/results/c61649c8c335c2dacefff9acddcdb7251496235e14b5d31ce33e3fae6183e3c3.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "3e3ec2fbe95134192ab0a0f631197f34166704db83f8fabd74ac059dd51e7684",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-4/results/f91f62b847fa4bc429a4be1cafe0334f682b90975d560eb29ca6a485ed3e7abd.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "7f7766b8d1d70195c6824e6e0cd1559c3ff143d549460427a9738929b1861860",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-5/results/27338e72b0f75a543a1a390b4014f89e53f9db76d87352f506ff1ae3bbcd1a39.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "5b5779c644b56a331dfc33a8c4523330a24c2617f314d256f2b46e876bdb305e",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-5/results/635decee90dbff9e9ff41018534c181866b76cca4522ea3484f6d6913225a6ad.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "7d2ba75c78141e66ac4c3fed1742f8c9ef711fb2ee2d46ef736efc86b3e08d61",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-5/results/c61649c8c335c2dacefff9acddcdb7251496235e14b5d31ce33e3fae6183e3c3.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "3e3ec2fbe95134192ab0a0f631197f34166704db83f8fabd74ac059dd51e7684",
+      "path": "/private/tmp/phase6-evidence/generator-timing-experiment/experiment-5/results/f91f62b847fa4bc429a4be1cafe0334f682b90975d560eb29ca6a485ed3e7abd.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "bc764f2ec1c31a861753eed712258eba092695edfab6b2f67aef3b34a38ef4a5",
+      "path": "/private/tmp/phase6-evidence/native-history-cpu-experiment/experiment-1/results/0458883664487f127b84aaeafd6f8ef8527b95c6f42865dd9f0baf4a26d6bb06.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "b6e7470309af76096893fcd369a09fa970ef4eb6ca49076d20ca677719333de9",
+      "path": "/private/tmp/phase6-evidence/native-history-cpu-experiment/experiment-1/results/2904dc9129b71e51a3bb36714296097d17cbcf892559c1d17eb4394170560109.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "4b2557a93f4a90217a1421e63a2d4c714f0f7bcd6d94600a654bbbb362be43a3",
+      "path": "/private/tmp/phase6-evidence/native-history-cpu-experiment/experiment-1/results/d1bed20d4e19bfe43814fd0869dadf28cb8eb3ad469493e9d112f0336f251a7f.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "8689978da52fd947b1d90ecc1da8da7571d891cc9f11fd47fddc9fcc4b4947d0",
+      "path": "/private/tmp/phase6-evidence/native-history-cpu-experiment/experiment-1/results/ed2da7d4a9863826c7fc47afdd74e787399e140c792b5cfaa69cb6ba59396738.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "bc764f2ec1c31a861753eed712258eba092695edfab6b2f67aef3b34a38ef4a5",
+      "path": "/private/tmp/phase6-evidence/native-history-memory-experiment/experiment-1/results/0458883664487f127b84aaeafd6f8ef8527b95c6f42865dd9f0baf4a26d6bb06.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "b6e7470309af76096893fcd369a09fa970ef4eb6ca49076d20ca677719333de9",
+      "path": "/private/tmp/phase6-evidence/native-history-memory-experiment/experiment-1/results/2904dc9129b71e51a3bb36714296097d17cbcf892559c1d17eb4394170560109.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "4b2557a93f4a90217a1421e63a2d4c714f0f7bcd6d94600a654bbbb362be43a3",
+      "path": "/private/tmp/phase6-evidence/native-history-memory-experiment/experiment-1/results/d1bed20d4e19bfe43814fd0869dadf28cb8eb3ad469493e9d112f0336f251a7f.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "8689978da52fd947b1d90ecc1da8da7571d891cc9f11fd47fddc9fcc4b4947d0",
+      "path": "/private/tmp/phase6-evidence/native-history-memory-experiment/experiment-1/results/ed2da7d4a9863826c7fc47afdd74e787399e140c792b5cfaa69cb6ba59396738.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "bc764f2ec1c31a861753eed712258eba092695edfab6b2f67aef3b34a38ef4a5",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-1/results/0458883664487f127b84aaeafd6f8ef8527b95c6f42865dd9f0baf4a26d6bb06.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "b6e7470309af76096893fcd369a09fa970ef4eb6ca49076d20ca677719333de9",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-1/results/2904dc9129b71e51a3bb36714296097d17cbcf892559c1d17eb4394170560109.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "4b2557a93f4a90217a1421e63a2d4c714f0f7bcd6d94600a654bbbb362be43a3",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-1/results/d1bed20d4e19bfe43814fd0869dadf28cb8eb3ad469493e9d112f0336f251a7f.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "8689978da52fd947b1d90ecc1da8da7571d891cc9f11fd47fddc9fcc4b4947d0",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-1/results/ed2da7d4a9863826c7fc47afdd74e787399e140c792b5cfaa69cb6ba59396738.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "bc764f2ec1c31a861753eed712258eba092695edfab6b2f67aef3b34a38ef4a5",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-2/results/0458883664487f127b84aaeafd6f8ef8527b95c6f42865dd9f0baf4a26d6bb06.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "b6e7470309af76096893fcd369a09fa970ef4eb6ca49076d20ca677719333de9",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-2/results/2904dc9129b71e51a3bb36714296097d17cbcf892559c1d17eb4394170560109.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "4b2557a93f4a90217a1421e63a2d4c714f0f7bcd6d94600a654bbbb362be43a3",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-2/results/d1bed20d4e19bfe43814fd0869dadf28cb8eb3ad469493e9d112f0336f251a7f.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "8689978da52fd947b1d90ecc1da8da7571d891cc9f11fd47fddc9fcc4b4947d0",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-2/results/ed2da7d4a9863826c7fc47afdd74e787399e140c792b5cfaa69cb6ba59396738.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "bc764f2ec1c31a861753eed712258eba092695edfab6b2f67aef3b34a38ef4a5",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-3/results/0458883664487f127b84aaeafd6f8ef8527b95c6f42865dd9f0baf4a26d6bb06.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "b6e7470309af76096893fcd369a09fa970ef4eb6ca49076d20ca677719333de9",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-3/results/2904dc9129b71e51a3bb36714296097d17cbcf892559c1d17eb4394170560109.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "4b2557a93f4a90217a1421e63a2d4c714f0f7bcd6d94600a654bbbb362be43a3",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-3/results/d1bed20d4e19bfe43814fd0869dadf28cb8eb3ad469493e9d112f0336f251a7f.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "8689978da52fd947b1d90ecc1da8da7571d891cc9f11fd47fddc9fcc4b4947d0",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-3/results/ed2da7d4a9863826c7fc47afdd74e787399e140c792b5cfaa69cb6ba59396738.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "bc764f2ec1c31a861753eed712258eba092695edfab6b2f67aef3b34a38ef4a5",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-4/results/0458883664487f127b84aaeafd6f8ef8527b95c6f42865dd9f0baf4a26d6bb06.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "b6e7470309af76096893fcd369a09fa970ef4eb6ca49076d20ca677719333de9",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-4/results/2904dc9129b71e51a3bb36714296097d17cbcf892559c1d17eb4394170560109.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "4b2557a93f4a90217a1421e63a2d4c714f0f7bcd6d94600a654bbbb362be43a3",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-4/results/d1bed20d4e19bfe43814fd0869dadf28cb8eb3ad469493e9d112f0336f251a7f.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "8689978da52fd947b1d90ecc1da8da7571d891cc9f11fd47fddc9fcc4b4947d0",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-4/results/ed2da7d4a9863826c7fc47afdd74e787399e140c792b5cfaa69cb6ba59396738.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "bc764f2ec1c31a861753eed712258eba092695edfab6b2f67aef3b34a38ef4a5",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-5/results/0458883664487f127b84aaeafd6f8ef8527b95c6f42865dd9f0baf4a26d6bb06.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "b6e7470309af76096893fcd369a09fa970ef4eb6ca49076d20ca677719333de9",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-5/results/2904dc9129b71e51a3bb36714296097d17cbcf892559c1d17eb4394170560109.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "4b2557a93f4a90217a1421e63a2d4c714f0f7bcd6d94600a654bbbb362be43a3",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-5/results/d1bed20d4e19bfe43814fd0869dadf28cb8eb3ad469493e9d112f0336f251a7f.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "8689978da52fd947b1d90ecc1da8da7571d891cc9f11fd47fddc9fcc4b4947d0",
+      "path": "/private/tmp/phase6-evidence/native-history-timing-experiment/experiment-5/results/ed2da7d4a9863826c7fc47afdd74e787399e140c792b5cfaa69cb6ba59396738.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "77e2c26fe31165cd2dd5caa7fad387c244ac91e1924056b692cfbe3a5ad9b19d",
+      "path": "/private/tmp/phase6-evidence/optimized-cpu-experiment/experiment-1/results/58a0a641cc6574a146703f47aa5daeeb55fbd0f8582f5546953a0e706af07706.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "45477f9f9a5931e60a9d24fba58de7ff600121973e1683d4b1f6a67f9621c1b6",
+      "path": "/private/tmp/phase6-evidence/optimized-cpu-experiment/experiment-1/results/6d488e9b766421d98acbdf9d5d6004ba15e88dad6518d28de204ca515d732aae.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "78a225bcb6f131c23fe857b484deca7269c188bbf42b1e96f17ac39e8e2f9f81",
+      "path": "/private/tmp/phase6-evidence/optimized-cpu-experiment/experiment-1/results/76c1537db4c85618cb219b10c526df2a4b05c94bb6ee1622bd31a88a728e2144.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "a972867f8a042ac58305792caca253e0f56cb4174502d3a4900659f187086b70",
+      "path": "/private/tmp/phase6-evidence/optimized-cpu-experiment/experiment-1/results/f9bbc1797266185061d3b927dba429c646a14e0b421e539c4231a8cae99eb259.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "77e2c26fe31165cd2dd5caa7fad387c244ac91e1924056b692cfbe3a5ad9b19d",
+      "path": "/private/tmp/phase6-evidence/optimized-memory-experiment/experiment-1/results/58a0a641cc6574a146703f47aa5daeeb55fbd0f8582f5546953a0e706af07706.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "45477f9f9a5931e60a9d24fba58de7ff600121973e1683d4b1f6a67f9621c1b6",
+      "path": "/private/tmp/phase6-evidence/optimized-memory-experiment/experiment-1/results/6d488e9b766421d98acbdf9d5d6004ba15e88dad6518d28de204ca515d732aae.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "78a225bcb6f131c23fe857b484deca7269c188bbf42b1e96f17ac39e8e2f9f81",
+      "path": "/private/tmp/phase6-evidence/optimized-memory-experiment/experiment-1/results/76c1537db4c85618cb219b10c526df2a4b05c94bb6ee1622bd31a88a728e2144.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "a972867f8a042ac58305792caca253e0f56cb4174502d3a4900659f187086b70",
+      "path": "/private/tmp/phase6-evidence/optimized-memory-experiment/experiment-1/results/f9bbc1797266185061d3b927dba429c646a14e0b421e539c4231a8cae99eb259.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "77e2c26fe31165cd2dd5caa7fad387c244ac91e1924056b692cfbe3a5ad9b19d",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-1/results/58a0a641cc6574a146703f47aa5daeeb55fbd0f8582f5546953a0e706af07706.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "45477f9f9a5931e60a9d24fba58de7ff600121973e1683d4b1f6a67f9621c1b6",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-1/results/6d488e9b766421d98acbdf9d5d6004ba15e88dad6518d28de204ca515d732aae.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "78a225bcb6f131c23fe857b484deca7269c188bbf42b1e96f17ac39e8e2f9f81",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-1/results/76c1537db4c85618cb219b10c526df2a4b05c94bb6ee1622bd31a88a728e2144.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "a972867f8a042ac58305792caca253e0f56cb4174502d3a4900659f187086b70",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-1/results/f9bbc1797266185061d3b927dba429c646a14e0b421e539c4231a8cae99eb259.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "77e2c26fe31165cd2dd5caa7fad387c244ac91e1924056b692cfbe3a5ad9b19d",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-2/results/58a0a641cc6574a146703f47aa5daeeb55fbd0f8582f5546953a0e706af07706.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "45477f9f9a5931e60a9d24fba58de7ff600121973e1683d4b1f6a67f9621c1b6",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-2/results/6d488e9b766421d98acbdf9d5d6004ba15e88dad6518d28de204ca515d732aae.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "78a225bcb6f131c23fe857b484deca7269c188bbf42b1e96f17ac39e8e2f9f81",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-2/results/76c1537db4c85618cb219b10c526df2a4b05c94bb6ee1622bd31a88a728e2144.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "a972867f8a042ac58305792caca253e0f56cb4174502d3a4900659f187086b70",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-2/results/f9bbc1797266185061d3b927dba429c646a14e0b421e539c4231a8cae99eb259.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "77e2c26fe31165cd2dd5caa7fad387c244ac91e1924056b692cfbe3a5ad9b19d",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-3/results/58a0a641cc6574a146703f47aa5daeeb55fbd0f8582f5546953a0e706af07706.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "45477f9f9a5931e60a9d24fba58de7ff600121973e1683d4b1f6a67f9621c1b6",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-3/results/6d488e9b766421d98acbdf9d5d6004ba15e88dad6518d28de204ca515d732aae.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "78a225bcb6f131c23fe857b484deca7269c188bbf42b1e96f17ac39e8e2f9f81",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-3/results/76c1537db4c85618cb219b10c526df2a4b05c94bb6ee1622bd31a88a728e2144.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "a972867f8a042ac58305792caca253e0f56cb4174502d3a4900659f187086b70",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-3/results/f9bbc1797266185061d3b927dba429c646a14e0b421e539c4231a8cae99eb259.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "77e2c26fe31165cd2dd5caa7fad387c244ac91e1924056b692cfbe3a5ad9b19d",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-4/results/58a0a641cc6574a146703f47aa5daeeb55fbd0f8582f5546953a0e706af07706.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "45477f9f9a5931e60a9d24fba58de7ff600121973e1683d4b1f6a67f9621c1b6",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-4/results/6d488e9b766421d98acbdf9d5d6004ba15e88dad6518d28de204ca515d732aae.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "78a225bcb6f131c23fe857b484deca7269c188bbf42b1e96f17ac39e8e2f9f81",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-4/results/76c1537db4c85618cb219b10c526df2a4b05c94bb6ee1622bd31a88a728e2144.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "a972867f8a042ac58305792caca253e0f56cb4174502d3a4900659f187086b70",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-4/results/f9bbc1797266185061d3b927dba429c646a14e0b421e539c4231a8cae99eb259.json"
+    },
+    {
+      "bytes": 10978495,
+      "content_sha256": "77e2c26fe31165cd2dd5caa7fad387c244ac91e1924056b692cfbe3a5ad9b19d",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-5/results/58a0a641cc6574a146703f47aa5daeeb55fbd0f8582f5546953a0e706af07706.json"
+    },
+    {
+      "bytes": 10776964,
+      "content_sha256": "45477f9f9a5931e60a9d24fba58de7ff600121973e1683d4b1f6a67f9621c1b6",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-5/results/6d488e9b766421d98acbdf9d5d6004ba15e88dad6518d28de204ca515d732aae.json"
+    },
+    {
+      "bytes": 10708839,
+      "content_sha256": "78a225bcb6f131c23fe857b484deca7269c188bbf42b1e96f17ac39e8e2f9f81",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-5/results/76c1537db4c85618cb219b10c526df2a4b05c94bb6ee1622bd31a88a728e2144.json"
+    },
+    {
+      "bytes": 10857205,
+      "content_sha256": "a972867f8a042ac58305792caca253e0f56cb4174502d3a4900659f187086b70",
+      "path": "/private/tmp/phase6-evidence/optimized-timing-experiment/experiment-5/results/f9bbc1797266185061d3b927dba429c646a14e0b421e539c4231a8cae99eb259.json"
+    }
+  ],
+  "removed_bytes": 1213002084,
+  "scope": "Generated temporary detailed profile exports only",
+  "verification": "Each profile completed validating snapshot/full-result hashing; all24reports and56runs agreed on full result andworkload hashes before removal"
+}

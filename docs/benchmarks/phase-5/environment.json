@@ -1,0 +1,164 @@
+{
+  "cpu_brand": "Apple M3 Pro",
+  "environment": {
+    "available_cores": 11,
+    "distributions": [
+      {
+        "name": "PyYAML",
+        "version": "6.0.3"
+      },
+      {
+        "name": "Pygments",
+        "version": "2.21.0"
+      },
+      {
+        "name": "ast_serialize",
+        "version": "0.12.1"
+      },
+      {
+        "name": "attrs",
+        "version": "26.1.0"
+      },
+      {
+        "name": "build",
+        "version": "1.6.1"
+      },
+      {
+        "name": "certifi",
+        "version": "2026.7.22"
+      },
+      {
+        "name": "charset-normalizer",
+        "version": "3.5.2"
+      },
+      {
+        "name": "click",
+        "version": "8.5.0"
+      },
+      {
+        "name": "distributed-backtester",
+        "version": "0.6.0"
+      },
+      {
+        "name": "duckdb",
+        "version": "1.5.6"
+      },
+      {
+        "name": "filelock",
+        "version": "4.1.0"
+      },
+      {
+        "name": "idna",
+        "version": "3.20"
+      },
+      {
+        "name": "iniconfig",
+        "version": "2.3.1"
+      },
+      {
+        "name": "jsonschema",
+        "version": "4.26.0"
+      },
+      {
+        "name": "jsonschema-specifications",
+        "version": "2025.9.1"
+      },
+      {
+        "name": "librt",
+        "version": "0.16.0"
+      },
+      {
+        "name": "msgpack",
+        "version": "1.2.3"
+      },
+      {
+        "name": "mypy",
+        "version": "2.4.0"
+      },
+      {
+        "name": "mypy_extensions",
+        "version": "1.1.0"
+      },
+      {
+        "name": "packaging",
+        "version": "26.3"
+      },
+      {
+        "name": "pathspec",
+        "version": "1.1.1"
+      },
+      {
+        "name": "pip",
+        "version": "26.1.2"
+      },
+      {
+        "name": "pluggy",
+        "version": "1.6.0"
+      },
+      {
+        "name": "protobuf",
+        "version": "7.36.2"
+      },
+      {
+        "name": "psutil",
+        "version": "7.2.2"
+      },
+      {
+        "name": "pyarrow",
+        "version": "25.0.1"
+      },
+      {
+        "name": "pyproject_hooks",
+        "version": "1.3.3"
+      },
+      {
+        "name": "pytest",
+        "version": "9.1.1"
+      },
+      {
+        "name": "ray",
+        "version": "2.59.0"
+      },
+      {
+        "name": "referencing",
+        "version": "0.37.0"
+      },
+      {
+        "name": "requests",
+        "version": "2.34.2"
+      },
+      {
+        "name": "rpds-py",
+        "version": "2026.9.1"
+      },
+      {
+        "name": "ruff",
+        "version": "0.17.0"
+      },
+      {
+        "name": "setuptools",
+        "version": "84.0.0"
+      },
+      {
+        "name": "typing_extensions",
+        "version": "4.16.0"
+      },
+      {
+        "name": "urllib3",
+        "version": "2.8.0"
+      }
+    ],
+    "git_dirty": true,
+    "git_revision": "14d24c282b5fa6cb71403c153383c05e23e78572",
+    "git_status": " M .github/workflows/ci.yml\n M README.md\n M docs/architecture.md\n M \"docs/clear explanation.md\"\n M docs/decisions/README.md\n M docs/dependencies.md\n M docs/phase-5-plan.md\n M docs/roadmap.md\n M docs/technical-explanation.md\n M docs/testing.md\n?? docs/benchmarks/phase-5/environment.json\n?? docs/phase-5-report.md\n?? docs/storage.md\n?? requirements/storage-benchmark.lock\n",
+    "logical_cores": 11,
+    "machine": "arm64",
+    "platform": "macOS-26.6.1-arm64-arm-64bit-Mach-O",
+    "python_implementation": "CPython",
+    "python_version": "3.14.6",
+    "thread_environment": {}
+  },
+  "hardware_source": "sysctl hardware queries",
+  "physical_memory_bytes": 19327352832,
+  "source_sha256": "dfef1b1edee02fde072a4173750d25b8a39f9bc279772c69a184d98c9ed7c53c"
+}

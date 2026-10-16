@@ -1,0 +1,17 @@
+{
+  "excluded_pilots": [
+    "baseline-small",
+    "candidate-small"
+  ],
+  "issue": "Ray import exposes bundled Colorama metadata after parent environment capture",
+  "observed_extra_distribution": {
+    "name": "colorama",
+    "version": "0.4.6"
+  },
+  "ray_vendor_path": "/Users/blakezhang/Documents/Dev/distrubuted-backtester/.venv/lib/python3.14/site-packages/ray/thirdparty_files",
+  "rerun_variants": [
+    "baseline-controlled",
+    "candidate-controlled"
+  ],
+  "resolution": "Expose this pinned Ray bundled path through identical PYTHONPATH for all fresh benchmark processes; no package installation or source changes"
+}

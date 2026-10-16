@@ -1,0 +1,2021 @@
+{
+  "branch": "feat/phase-7-operations",
+  "container_recovery": {
+    "derived_export_validation": {
+      "exports": [
+        {
+          "experiment_id": "203aee441968aefd0304bdd3e6a8e669e4337e42916ab79b4d705ea548018ff9",
+          "index_sha256": "e3cfac40a84e8a2734168f640a29a47dbf3e61b4039790db5e8664f71c8fede1",
+          "mode": "term",
+          "validated_artifacts": 1
+        },
+        {
+          "experiment_id": "203aee441968aefd0304bdd3e6a8e669e4337e42916ab79b4d705ea548018ff9",
+          "index_sha256": "e3cfac40a84e8a2734168f640a29a47dbf3e61b4039790db5e8664f71c8fede1",
+          "mode": "int",
+          "validated_artifacts": 1
+        },
+        {
+          "experiment_id": "203aee441968aefd0304bdd3e6a8e669e4337e42916ab79b4d705ea548018ff9",
+          "index_sha256": "e3cfac40a84e8a2734168f640a29a47dbf3e61b4039790db5e8664f71c8fede1",
+          "mode": "kill",
+          "validated_artifacts": 1
+        }
+      ],
+      "ok": true
+    },
+    "drills": [
+      {
+        "after": {
+          "attempt_statuses": [
+            "interrupted",
+            "succeeded"
+          ],
+          "counts": {
+            "failed": 0,
+            "pending": 0,
+            "running": 0,
+            "succeeded": 1
+          },
+          "generation": 2,
+          "publication_complete": true
+        },
+        "before": {
+          "counts": {
+            "failed": 0,
+            "pending": 0,
+            "running": 1,
+            "succeeded": 0
+          },
+          "generation": 1
+        },
+        "commands": [
+          {
+            "argv": [
+              "docker",
+              "stop",
+              "--timeout",
+              "30",
+              "phase7-drill-term-20261011"
+            ],
+            "label": "term-signal",
+            "returncode": 0
+          },
+          {
+            "argv": [
+              "docker",
+              "run",
+              "--rm",
+              "--init",
+              "--cpus=2",
+              "--memory=4g",
+              "--memory-swap=4g",
+              "--shm-size=256m",
+              "--stop-timeout=30",
+              "--mount",
+              "type=volume,source=phase7-outputs-20261011-1747,target=/outputs",
+              "--mount",
+              "type=bind,source=/private/tmp/phase7-drill-input,target=/inputs,readonly",
+              "sha256:38839087d89e2f3518f8317078508cfec7b106c2373d2789040bbd17045b147f",
+              "status",
+              "--output-dir",
+              "/outputs/drill-term"
+            ],
+            "label": "term-status-before",
+            "returncode": 0
+          },
+          {
+            "argv": [
+              "docker",
+              "run",
+              "--rm",
+              "--init",
+              "--cpus=2",
+              "--memory=4g",
+              "--memory-swap=4g",
+              "--shm-size=256m",
+              "--stop-timeout=30",
+              "--mount",
+              "type=volume,source=phase7-outputs-20261011-1747,target=/outputs",
+              "--mount",
+              "type=bind,source=/private/tmp/phase7-drill-input,target=/inputs,readonly",
+              "sha256:38839087d89e2f3518f8317078508cfec7b106c2373d2789040bbd17045b147f",
+              "resume",
+              "--data",
+              "/inputs/long.csv",
+              "--output-dir",
+              "/outputs/drill-term",
+              "--workers",
+              "1",
+              "--log-level",
+              "INFO"
+            ],
+            "label": "term-resume",
+            "returncode": 0
+          },
+          {
+            "argv": [
+              "docker",
+              "run",
+              "--rm",
+              "--init",
+              "--cpus=2",
+              "--memory=4g",
+              "--memory-swap=4g",
+              "--shm-size=256m",
+              "--stop-timeout=30",
+              "--mount",
+              "type=volume,source=phase7-outputs-20261011-1747,target=/outputs",
+              "--mount",
+              "type=bind,source=/private/tmp/phase7-drill-input,target=/inputs,readonly",
+              "sha256:38839087d89e2f3518f8317078508cfec7b106c2373d2789040bbd17045b147f",
+              "status",
+              "--output-dir",
+              "/outputs/drill-term"
+            ],
+            "label": "term-status-after",
+            "returncode": 0
+          }
+        ],
+        "container_exit_code": 143,
+        "experiment_id": "203aee441968aefd0304bdd3e6a8e669e4337e42916ab79b4d705ea548018ff9",
+        "mode": "term",
+        "oom_killed": false
+      },
+      {
+        "after": {
+          "attempt_statuses": [
+            "interrupted",
+            "succeeded"
+          ],
+          "counts": {
+            "failed": 0,
+            "pending": 0,
+            "running": 0,
+            "succeeded": 1
+          },
+          "generation": 2,
+          "publication_complete": true
+        },
+        "before": {
+          "counts": {
+            "failed": 0,
+            "pending": 0,
+            "running": 1,
+            "succeeded": 0
+          },
+          "generation": 1
+        },
+        "commands": [
+          {
+            "argv": [
+              "docker",
+              "kill",
+              "--signal",
+              "INT",
+              "phase7-drill-int-20261011"
+            ],
+            "label": "int-signal",
+            "returncode": 0
+          },
+          {
+            "argv": [
+              "docker",
+              "run",
+              "--rm",
+              "--init",
+              "--cpus=2",
+              "--memory=4g",
+              "--memory-swap=4g",
+              "--shm-size=256m",
+              "--stop-timeout=30",
+              "--mount",
+              "type=volume,source=phase7-outputs-20261011-1747,target=/outputs",
+              "--mount",
+              "type=bind,source=/private/tmp/phase7-drill-input,target=/inputs,readonly",
+              "sha256:38839087d89e2f3518f8317078508cfec7b106c2373d2789040bbd17045b147f",
+              "status",
+              "--output-dir",
+              "/outputs/drill-int"
+            ],
+            "label": "int-status-before",
+            "returncode": 0
+          },
+          {
+            "argv": [
+              "docker",
+              "run",
+              "--rm",
+              "--init",
+              "--cpus=2",
+              "--memory=4g",
+              "--memory-swap=4g",
+              "--shm-size=256m",
+              "--stop-timeout=30",
+              "--mount",
+              "type=volume,source=phase7-outputs-20261011-1747,target=/outputs",
+              "--mount",
+              "type=bind,source=/private/tmp/phase7-drill-input,target=/inputs,readonly",
+              "sha256:38839087d89e2f3518f8317078508cfec7b106c2373d2789040bbd17045b147f",
+              "resume",
+              "--data",
+              "/inputs/long.csv",
+              "--output-dir",
+              "/outputs/drill-int",
+              "--workers",
+              "1",
+              "--log-level",
+              "INFO"
+            ],
+            "label": "int-resume",
+            "returncode": 0
+          },
+          {
+            "argv": [
+              "docker",
+              "run",
+              "--rm",
+              "--init",
+              "--cpus=2",
+              "--memory=4g",
+              "--memory-swap=4g",
+              "--shm-size=256m",
+              "--stop-timeout=30",
+              "--mount",
+              "type=volume,source=phase7-outputs-20261011-1747,target=/outputs",
+              "--mount",
+              "type=bind,source=/private/tmp/phase7-drill-input,target=/inputs,readonly",
+              "sha256:38839087d89e2f3518f8317078508cfec7b106c2373d2789040bbd17045b147f",
+              "status",
+              "--output-dir",
+              "/outputs/drill-int"
+            ],
+            "label": "int-status-after",
+            "returncode": 0
+          }
+        ],
+        "container_exit_code": 130,
+        "experiment_id": "203aee441968aefd0304bdd3e6a8e669e4337e42916ab79b4d705ea548018ff9",
+        "mode": "int",
+        "oom_killed": false
+      },
+      {
+        "after": {
+          "attempt_statuses": [
+            "interrupted",
+            "succeeded"
+          ],
+          "counts": {
+            "failed": 0,
+            "pending": 0,
+            "running": 0,
+            "succeeded": 1
+          },
+          "generation": 2,
+          "publication_complete": true
+        },
+        "before": {
+          "counts": {
+            "failed": 0,
+            "pending": 0,
+            "running": 1,
+            "succeeded": 0
+          },
+          "generation": 1
+        },
+        "commands": [
+          {
+            "argv": [
+              "docker",
+              "kill",
+              "--signal",
+              "KILL",
+              "phase7-drill-kill-20261011"
+            ],
+            "label": "kill-signal",
+            "returncode": 0
+          },
+          {
+            "argv": [
+              "docker",
+              "run",
+              "--rm",
+              "--init",
+              "--cpus=2",
+              "--memory=4g",
+              "--memory-swap=4g",
+              "--shm-size=256m",
+              "--stop-timeout=30",
+              "--mount",
+              "type=volume,source=phase7-outputs-20261011-1747,target=/outputs",
+              "--mount",
+              "type=bind,source=/private/tmp/phase7-drill-input,target=/inputs,readonly",
+              "sha256:38839087d89e2f3518f8317078508cfec7b106c2373d2789040bbd17045b147f",
+              "status",
+              "--output-dir",
+              "/outputs/drill-kill"
+            ],
+            "label": "kill-status-before",
+            "returncode": 0
+          },
+          {
+            "argv": [
+              "docker",
+              "run",
+              "--rm",
+              "--init",
+              "--cpus=2",
+              "--memory=4g",
+              "--memory-swap=4g",
+              "--shm-size=256m",
+              "--stop-timeout=30",
+              "--mount",
+              "type=volume,source=phase7-outputs-20261011-1747,target=/outputs",
+              "--mount",
+              "type=bind,source=/private/tmp/phase7-drill-input,target=/inputs,readonly",
+              "sha256:38839087d89e2f3518f8317078508cfec7b106c2373d2789040bbd17045b147f",
+              "resume",
+              "--data",
+              "/inputs/long.csv",
+              "--output-dir",
+              "/outputs/drill-kill",
+              "--workers",
+              "1",
+              "--log-level",
+              "INFO"
+            ],
+            "label": "kill-resume",
+            "returncode": 0
+          },
+          {
+            "argv": [
+              "docker",
+              "run",
+              "--rm",
+              "--init",
+              "--cpus=2",
+              "--memory=4g",
+              "--memory-swap=4g",
+              "--shm-size=256m",
+              "--stop-timeout=30",
+              "--mount",
+              "type=volume,source=phase7-outputs-20261011-1747,target=/outputs",
+              "--mount",
+              "type=bind,source=/private/tmp/phase7-drill-input,target=/inputs,readonly",
+              "sha256:38839087d89e2f3518f8317078508cfec7b106c2373d2789040bbd17045b147f",
+              "status",
+              "--output-dir",
+              "/outputs/drill-kill"
+            ],
+            "label": "kill-status-after",
+            "returncode": 0
+          }
+        ],
+        "container_exit_code": 137,
+        "experiment_id": "203aee441968aefd0304bdd3e6a8e669e4337e42916ab79b4d705ea548018ff9",
+        "mode": "kill",
+        "oom_killed": false
+      }
+    ],
+    "image_id": "sha256:38839087d89e2f3518f8317078508cfec7b106c2373d2789040bbd17045b147f",
+    "signal_delivery": "After a persisted attempt_claimed event; original container removed before independent status/resume.",
+    "source_identity": {
+      "engine_id": "distributed-backtester/0.8.0:daily-long-only-v1",
+      "source_sha256": "a3edda1731d8694fda5d6987e570e0cca365bbee22d18bbfc0dbd116003f618f"
+    },
+    "workload": {
+      "bars": 262144,
+      "job_timeout_seconds": 180,
+      "jobs": 1,
+      "max_attempts": 3,
+      "seed": 1729,
+      "workers": 1
+    }
+  },
+  "docker": {
+    "base": "python:3.12.15-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258",
+    "dev_checks": [
+      {
+        "command": "docker run --rm --init --entrypoint python distributed-backtester:0.8.0-dev -I -m pip check",
+        "exit_code": 0,
+        "result": "No broken requirements found."
+      },
+      {
+        "command": "docker run --rm --init --entrypoint python distributed-backtester:0.8.0-dev -I -m ruff check /workspace",
+        "exit_code": 0,
+        "result": "All checks passed!"
+      },
+      {
+        "command": "docker run --rm --init --entrypoint python distributed-backtester:0.8.0-dev -I -m ruff format --check /workspace",
+        "exit_code": 0,
+        "result": "143 files already formatted"
+      },
+      {
+        "command": "docker run --rm --init --workdir /workspace --entrypoint python distributed-backtester:0.8.0-dev -I -m mypy src tests scripts/smoke.py",
+        "exit_code": 0,
+        "result": "Success: no issues found in 102 source files"
+      }
+    ],
+    "dev_smoke": {
+      "command": "python -I /opt/backtester/scripts/smoke.py --data /inputs/sma.csv --output-parent /outputs --timeout 180 --signals",
+      "exit_code": 0,
+      "report": {
+        "installed": {
+          "package_file": "/opt/venv/lib/python3.12/site-packages/distributed_backtester/__init__.py",
+          "record_file": "/opt/venv/lib/python3.12/site-packages/distributed_backtester-0.8.0.dist-info/RECORD",
+          "recorded_python_files": 46,
+          "uid": 10001,
+          "version": "0.8.0"
+        },
+        "ok": true,
+        "ray": false,
+        "schema_version": 1,
+        "semantic_digest": "b3d189adfc79df1c9567cbf09f01b2b9ec96d236c4d83a65d0962fa471584006",
+        "signals": true,
+        "storage": false,
+        "workspace": "/outputs/smoke-278mau9e"
+      }
+    },
+    "image_labels_revision": "0dab66a-dirty",
+    "image_metadata_scope": "Images built from the frozen package/helper before completion-document edits. IDs below are the images actually executed, not a claim about future rebuilds.",
+    "images": {
+      "dev": {
+        "build_command": "docker build --target dev --build-arg VCS_REF=0dab66a-dirty --tag distributed-backtester:0.8.0-dev .",
+        "exit_code": 0,
+        "id": "sha256:664b3494bfcafddbe94b311c0e3c85f7591074593944ba53dafb25f9c714297a"
+      },
+      "runtime": {
+        "build_command": "docker build --target runtime --build-arg VCS_REF=0dab66a-dirty --tag distributed-backtester:0.8.0-runtime .",
+        "exit_code": 0,
+        "id": "sha256:5932b2b6dd36792bfe563be5f00f17ffb771fe33829a807193211b7d13e3dc5e"
+      }
+    },
+    "installed_probe": {
+      "architecture": "aarch64",
+      "code_uid": 0,
+      "cpu_max": "200000 100000",
+      "identity": {
+        "engine_id": "distributed-backtester/0.8.0:daily-long-only-v1",
+        "source_sha256": "a3edda1731d8694fda5d6987e570e0cca365bbee22d18bbfc0dbd116003f618f"
+      },
+      "libc": [
+        "glibc",
+        "2.36"
+      ],
+      "memory_max": "4294967296",
+      "outputs_writable": true,
+      "package": "/opt/venv/lib/python3.12/site-packages/distributed_backtester/__init__.py",
+      "python": "3.12.15",
+      "uid": 10001
+    },
+    "libc": "glibc 2.36",
+    "platform": "linux/arm64",
+    "python": "3.12.15",
+    "retained_volume": "phase7-outputs-20261011-1747",
+    "runtime_container": {
+      "exit_code": 0,
+      "image": "sha256:5932b2b6dd36792bfe563be5f00f17ffb771fe33829a807193211b7d13e3dc5e",
+      "init": true,
+      "memory_bytes": 4294967296,
+      "memory_swap_bytes": 4294967296,
+      "mounts": [
+        {
+          "Destination": "/inputs",
+          "RW": false,
+          "Source": "/Users/blakezhang/Documents/Dev/distrubuted-backtester/examples",
+          "Type": "bind"
+        },
+        {
+          "Destination": "/outputs",
+          "RW": true,
+          "Source": "/var/lib/docker/volumes/phase7-outputs-20261011-1747/_data",
+          "Type": "volume"
+        }
+      ],
+      "name": "phase7-smoke-release-20261011-1805",
+      "nano_cpus": 2000000000,
+      "oom_killed": false,
+      "shm_bytes": 268435456,
+      "user": "10001:10001"
+    },
+    "runtime_smoke": {
+      "command": "python -I /opt/backtester/scripts/smoke.py --data /inputs/sma.csv --output-parent /outputs --timeout 180 --ray --storage --signals",
+      "exit_code": 0,
+      "report": {
+        "installed": {
+          "package_file": "/opt/venv/lib/python3.12/site-packages/distributed_backtester/__init__.py",
+          "record_file": "/opt/venv/lib/python3.12/site-packages/distributed_backtester-0.8.0.dist-info/RECORD",
+          "recorded_python_files": 46,
+          "uid": 10001,
+          "version": "0.8.0"
+        },
+        "ok": true,
+        "ray": true,
+        "schema_version": 1,
+        "semantic_digest": "b3d189adfc79df1c9567cbf09f01b2b9ec96d236c4d83a65d0962fa471584006",
+        "signals": true,
+        "storage": true,
+        "workspace": "/outputs/smoke-hqegap8j"
+      }
+    },
+    "server": "29.5.2 Docker Desktop",
+    "smoke_child_commands": {
+      "smoke-278mau9e": {
+        "config.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "backtest",
+            "--config",
+            "/outputs/smoke-278mau9e/configuration/backtest.toml",
+            "--fee-bps",
+            "10",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-278mau9e",
+          "elapsed_seconds": 0.2783211249998203,
+          "expected_exit": 0,
+          "pid": 11,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "installed-package.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-c",
+            "\nimport base64, hashlib, importlib.metadata as m, json, pathlib, sysconfig\nimport distributed_backtester as p\nd = m.distribution('distributed-backtester')\ndirect = json.loads(d.read_text('direct_url.json') or '{}')\nassert not direct.get('dir_info', {}).get('editable'), 'install a wheel'\nsites = {pathlib.Path(sysconfig.get_path(key)).resolve()\n         for key in ('purelib', 'platlib')}\nbase = pathlib.Path(d.locate_file('')).resolve()\nassert base in sites, 'distribution is outside interpreter installation paths'\nwheel = d.read_text('WHEEL')\nassert wheel and 'Wheel-Version:' in wheel, 'installed wheel WHEEL metadata required'\nassert d.read_text('RECORD'), 'installed wheel RECORD metadata required'\nfiles = list(d.files or ())\nwheel_rows = [f for f in files if len(f.parts) == 2\n              and f.parts[0].endswith('.dist-info') and f.name == 'WHEEL']\nassert len(wheel_rows) == 1, 'WHEEL must be recorded in installed dist-info'\nmetadata = wheel_rows[0].parent\nrecord_rows = [f for f in files if f == metadata / 'RECORD']\nassert len(record_rows) == 1, 'RECORD must identify the installed wheel'\nfor f in (wheel_rows[0], record_rows[0]):\n    path = pathlib.Path(d.locate_file(f)).resolve()\n    assert path.is_relative_to(base) and path.is_file(), (\n        'invalid installed metadata path')\n    assert path.read_text() == d.read_text(f.name), 'distribution metadata differs'\npackage_rows = [f for f in files if f.parts[0] == 'distributed_backtester'\n                and f.suffix == '.py']\nassert package_rows, 'installed wheel package files must be recorded'\nrecorded = {}\nfor f in package_rows:\n    path = pathlib.Path(d.locate_file(f)).resolve()\n    assert path.is_relative_to(base), 'recorded package file escapes installation'\n    assert f.hash and f.hash.mode in ('sha256', 'sha384', 'sha512'), (\n        'package hash required')\n    content = path.read_bytes()\n    digest = base64.urlsafe_b64encode(\n        hashlib.new(f.hash.mode, content).digest()).rstrip(b'=')\n    assert digest.decode() == f.hash.value and len(content) == f.size, (\n        'package RECORD mismatch')\n    assert path not in recorded, 'duplicate package RECORD entry'\n    recorded[path] = f\nroot = base / 'distributed_backtester'\nimported = pathlib.Path(p.__file__).resolve()\nassert imported == (root / '__init__.py').resolve() and imported in recorded, (\n    'import bypasses wheel')\nassert p.__spec__ and pathlib.Path(p.__spec__.origin).resolve() == imported, (\n    'import origin differs')\nassert {pathlib.Path(path).resolve() for path in p.__path__} == {root.resolve()}, (\n    'package search path differs')\nprint(json.dumps({'version': d.version, 'package_file': p.__file__,\n                  'record_file': str(d.locate_file(record_rows[0])),\n                  'recorded_python_files': len(package_rows),\n                  'uid': __import__('os').getuid()}))\n"
+          ],
+          "cwd": "/outputs/smoke-278mau9e",
+          "elapsed_seconds": 0.23811625000007552,
+          "expected_exit": 0,
+          "pid": 8,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "invalid-config.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "backtest",
+            "--config",
+            "/outputs/smoke-278mau9e/configuration/invalid.toml",
+            "--output",
+            "/outputs/smoke-278mau9e/invalid-output.json",
+            "--log-level",
+            "ERROR"
+          ],
+          "cwd": "/outputs/smoke-278mau9e",
+          "elapsed_seconds": 0.27966041700005917,
+          "expected_exit": 2,
+          "pid": 12,
+          "returncode": 2,
+          "timeout": 180.0
+        },
+        "process-artifacts.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-c",
+            "\nimport json, sys\nfrom pathlib import Path\nfrom distributed_backtester.experiment_snapshot import read_experiment_snapshot\nwith read_experiment_snapshot(Path(sys.argv[1])) as s:\n    count = sum(1 for _ in s.iter_artifacts())\n    assert count == s.submitted == s.succeeded and s.failed == 0\n    print(json.dumps({'experiment_id': s.experiment_id, 'validated': count}))\n",
+            "/outputs/smoke-278mau9e/process"
+          ],
+          "cwd": "/outputs/smoke-278mau9e",
+          "elapsed_seconds": 0.22073299999988194,
+          "expected_exit": 0,
+          "pid": 25,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "process-status-job.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-278mau9e/process",
+            "--job-id",
+            "24765a6aca278362092a1c7a91a284ab819789c400dce645d27fc013a21e0180",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-278mau9e",
+          "elapsed_seconds": 0.3308609999999135,
+          "expected_exit": 0,
+          "pid": 27,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "process-status.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-278mau9e/process",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-278mau9e",
+          "elapsed_seconds": 0.27431083400006173,
+          "expected_exit": 0,
+          "pid": 26,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "process.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "sweep",
+            "--data",
+            "/inputs/sma.csv",
+            "--symbol",
+            "SYNTH",
+            "--price-basis",
+            "raw",
+            "--fast",
+            "1",
+            "2",
+            "--slow",
+            "3",
+            "4",
+            "--fee-bps",
+            "10",
+            "--backend",
+            "process",
+            "--output-dir",
+            "/outputs/smoke-278mau9e/process",
+            "--log-level",
+            "INFO",
+            "--workers",
+            "2",
+            "--max-in-flight",
+            "4"
+          ],
+          "cwd": "/outputs/smoke-278mau9e",
+          "elapsed_seconds": 0.5841512090000833,
+          "expected_exit": 0,
+          "pid": 18,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "reference-logged.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "backtest",
+            "--data",
+            "/inputs/sma.csv",
+            "--symbol",
+            "SYNTH",
+            "--price-basis",
+            "raw",
+            "--fee-bps",
+            "10",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-278mau9e",
+          "elapsed_seconds": 0.2987375840000368,
+          "expected_exit": 0,
+          "pid": 10,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "reference.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "backtest",
+            "--data",
+            "/inputs/sma.csv",
+            "--symbol",
+            "SYNTH",
+            "--price-basis",
+            "raw",
+            "--fee-bps",
+            "10"
+          ],
+          "cwd": "/outputs/smoke-278mau9e",
+          "elapsed_seconds": 0.2997352499999124,
+          "expected_exit": 0,
+          "pid": 9,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "sequential-artifacts.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-c",
+            "\nimport json, sys\nfrom pathlib import Path\nfrom distributed_backtester.experiment_snapshot import read_experiment_snapshot\nwith read_experiment_snapshot(Path(sys.argv[1])) as s:\n    count = sum(1 for _ in s.iter_artifacts())\n    assert count == s.submitted == s.succeeded and s.failed == 0\n    print(json.dumps({'experiment_id': s.experiment_id, 'validated': count}))\n",
+            "/outputs/smoke-278mau9e/sequential"
+          ],
+          "cwd": "/outputs/smoke-278mau9e",
+          "elapsed_seconds": 0.2236187500000142,
+          "expected_exit": 0,
+          "pid": 15,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "sequential-status-job.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-278mau9e/sequential",
+            "--job-id",
+            "24765a6aca278362092a1c7a91a284ab819789c400dce645d27fc013a21e0180",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-278mau9e",
+          "elapsed_seconds": 0.2738673329999983,
+          "expected_exit": 0,
+          "pid": 17,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "sequential-status.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-278mau9e/sequential",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-278mau9e",
+          "elapsed_seconds": 0.2759256669999104,
+          "expected_exit": 0,
+          "pid": 16,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "sequential.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "sweep",
+            "--config",
+            "/outputs/smoke-278mau9e/configuration/sweep.toml",
+            "--output-dir",
+            "/outputs/smoke-278mau9e/sequential",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-278mau9e",
+          "elapsed_seconds": 0.3266540840002108,
+          "expected_exit": 0,
+          "pid": 13,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "signal-sigint.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "sweep",
+            "--data",
+            "/outputs/smoke-278mau9e/signal-data.csv",
+            "--symbol",
+            "SYNTH",
+            "--price-basis",
+            "raw",
+            "--fast",
+            "1",
+            "2",
+            "--slow",
+            "3",
+            "4",
+            "--fee-bps",
+            "10",
+            "--backend",
+            "sequential",
+            "--output-dir",
+            "/outputs/smoke-278mau9e/signal-sigint",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-278mau9e",
+          "elapsed_seconds": 0.4443463760001123,
+          "expected_exit": 130,
+          "pid": 29,
+          "returncode": 130,
+          "signal": "SIGINT",
+          "signal_event": {
+            "backend": "sequential",
+            "component": "worker",
+            "event": "job_started",
+            "experiment_id": "69cb4f49719f6b10d5c50bc4e57a05fb3906b16969cdc9b26f72ace8bc716c58",
+            "job_id": "59eb8a729af61fe50857f51f13d7094fc97ee32c99fb10fbc30a589ebc4bc8d6",
+            "level": "INFO",
+            "pid": 29,
+            "schema_version": 1,
+            "timestamp": "2026-10-11T18:06:29.596+00:00"
+          },
+          "timeout": 180.0
+        },
+        "signal-sigterm.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "sweep",
+            "--data",
+            "/outputs/smoke-278mau9e/signal-data.csv",
+            "--symbol",
+            "SYNTH",
+            "--price-basis",
+            "raw",
+            "--fast",
+            "1",
+            "2",
+            "--slow",
+            "3",
+            "4",
+            "--fee-bps",
+            "10",
+            "--backend",
+            "sequential",
+            "--output-dir",
+            "/outputs/smoke-278mau9e/signal-sigterm",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-278mau9e",
+          "elapsed_seconds": 0.4765697090001595,
+          "expected_exit": 143,
+          "pid": 28,
+          "returncode": 143,
+          "signal": "SIGTERM",
+          "signal_event": {
+            "backend": "sequential",
+            "component": "worker",
+            "event": "job_started",
+            "experiment_id": "69cb4f49719f6b10d5c50bc4e57a05fb3906b16969cdc9b26f72ace8bc716c58",
+            "job_id": "59eb8a729af61fe50857f51f13d7094fc97ee32c99fb10fbc30a589ebc4bc8d6",
+            "level": "INFO",
+            "pid": 28,
+            "schema_version": 1,
+            "timestamp": "2026-10-11T18:06:29.141+00:00"
+          },
+          "timeout": 180.0
+        }
+      },
+      "smoke-hqegap8j": {
+        "config.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "backtest",
+            "--config",
+            "/outputs/smoke-hqegap8j/configuration/backtest.toml",
+            "--fee-bps",
+            "10",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.3224833749998197,
+          "expected_exit": 0,
+          "pid": 11,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "convert.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "convert-data",
+            "--data",
+            "/inputs/sma.csv",
+            "--symbol",
+            "SYNTH",
+            "--price-basis",
+            "raw",
+            "--output",
+            "/outputs/smoke-hqegap8j/sample.parquet",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.3034324159998505,
+          "expected_exit": 0,
+          "pid": 659,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "durable-artifacts.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-c",
+            "\nimport json, sys\nfrom pathlib import Path\nfrom distributed_backtester.experiment_snapshot import read_experiment_snapshot\nwith read_experiment_snapshot(Path(sys.argv[1])) as s:\n    count = sum(1 for _ in s.iter_artifacts())\n    assert count == s.submitted == s.succeeded and s.failed == 0\n    print(json.dumps({'experiment_id': s.experiment_id, 'validated': count}))\n",
+            "/outputs/smoke-hqegap8j/durable"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.24339791700003843,
+          "expected_exit": 0,
+          "pid": 654,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "durable-recovered-artifacts.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-c",
+            "\nimport json, sys\nfrom pathlib import Path\nfrom distributed_backtester.experiment_snapshot import read_experiment_snapshot\nwith read_experiment_snapshot(Path(sys.argv[1])) as s:\n    count = sum(1 for _ in s.iter_artifacts())\n    assert count == s.submitted == s.succeeded and s.failed == 0\n    print(json.dumps({'experiment_id': s.experiment_id, 'validated': count}))\n",
+            "/outputs/smoke-hqegap8j/durable-interrupted"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 1.5583055009999498,
+          "expected_exit": 0,
+          "pid": 1293,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "durable-recovered-status-job.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/durable-interrupted",
+            "--job-id",
+            "59eb8a729af61fe50857f51f13d7094fc97ee32c99fb10fbc30a589ebc4bc8d6",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.43689887499999713,
+          "expected_exit": 0,
+          "pid": 1292,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "durable-recovered-status.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/durable-interrupted",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.44609733400011464,
+          "expected_exit": 0,
+          "pid": 1291,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "durable-recovered.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "resume",
+            "--data",
+            "/outputs/smoke-hqegap8j/signal-data.csv",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/durable-interrupted",
+            "--workers",
+            "2",
+            "--max-in-flight",
+            "4",
+            "--object-store-memory",
+            "134217728",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 6.160874294999985,
+          "expected_exit": 0,
+          "pid": 980,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "durable-resume-status-job.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/durable",
+            "--job-id",
+            "24765a6aca278362092a1c7a91a284ab819789c400dce645d27fc013a21e0180",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.3031270009998934,
+          "expected_exit": 0,
+          "pid": 658,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "durable-resume-status.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/durable",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.30452008399993247,
+          "expected_exit": 0,
+          "pid": 657,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "durable-resume.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "resume",
+            "--config",
+            "/outputs/smoke-hqegap8j/configuration/resume.toml",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.29557162500009326,
+          "expected_exit": 0,
+          "pid": 655,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "durable-sigterm.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "sweep",
+            "--data",
+            "/outputs/smoke-hqegap8j/signal-data.csv",
+            "--symbol",
+            "SYNTH",
+            "--price-basis",
+            "raw",
+            "--fast",
+            "1",
+            "2",
+            "--slow",
+            "3",
+            "4",
+            "--fee-bps",
+            "10",
+            "--backend",
+            "ray",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/durable-interrupted",
+            "--log-level",
+            "INFO",
+            "--workers",
+            "2",
+            "--max-in-flight",
+            "4",
+            "--cpus-per-worker",
+            "1",
+            "--object-store-memory",
+            "134217728",
+            "--durable",
+            "--job-timeout",
+            "90"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 4.8694138359999215,
+          "expected_exit": 143,
+          "pid": 670,
+          "returncode": 143,
+          "signal": "SIGTERM",
+          "signal_event": {
+            "attempt_generation": 1,
+            "attempt_id": "59eb8a729af61fe50857f51f13d7094fc97ee32c99fb10fbc30a589ebc4bc8d6:1",
+            "attempt_number": 1,
+            "backend": "ray",
+            "disposition": null,
+            "error_type": null,
+            "event": "attempt_claimed",
+            "experiment_id": "69cb4f49719f6b10d5c50bc4e57a05fb3906b16969cdc9b26f72ace8bc716c58",
+            "generation": 1,
+            "job_id": "59eb8a729af61fe50857f51f13d7094fc97ee32c99fb10fbc30a589ebc4bc8d6",
+            "level": "INFO",
+            "pid": 670,
+            "reason": null,
+            "schema_version": 1,
+            "timestamp": "2026-10-11T18:06:43.114+00:00"
+          },
+          "timeout": 180.0
+        },
+        "durable-status-job.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/durable",
+            "--job-id",
+            "24765a6aca278362092a1c7a91a284ab819789c400dce645d27fc013a21e0180",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.2470888749999176,
+          "expected_exit": 0,
+          "pid": 653,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "durable-status.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/durable",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.2944865419999587,
+          "expected_exit": 0,
+          "pid": 652,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "durable-stopped-status-job.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/durable-interrupted",
+            "--job-id",
+            "59eb8a729af61fe50857f51f13d7094fc97ee32c99fb10fbc30a589ebc4bc8d6",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.29121120799982236,
+          "expected_exit": 0,
+          "pid": 979,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "durable-stopped-status.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/durable-interrupted",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.2785365830000046,
+          "expected_exit": 0,
+          "pid": 978,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "durable.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "sweep",
+            "--data",
+            "/inputs/sma.csv",
+            "--symbol",
+            "SYNTH",
+            "--price-basis",
+            "raw",
+            "--fast",
+            "1",
+            "2",
+            "--slow",
+            "3",
+            "4",
+            "--fee-bps",
+            "10",
+            "--backend",
+            "ray",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/durable",
+            "--log-level",
+            "INFO",
+            "--workers",
+            "2",
+            "--max-in-flight",
+            "4",
+            "--cpus-per-worker",
+            "1",
+            "--object-store-memory",
+            "134217728",
+            "--durable"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 4.225948333999895,
+          "expected_exit": 0,
+          "pid": 343,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "installed-package.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-c",
+            "\nimport base64, hashlib, importlib.metadata as m, json, pathlib, sysconfig\nimport distributed_backtester as p\nd = m.distribution('distributed-backtester')\ndirect = json.loads(d.read_text('direct_url.json') or '{}')\nassert not direct.get('dir_info', {}).get('editable'), 'install a wheel'\nsites = {pathlib.Path(sysconfig.get_path(key)).resolve()\n         for key in ('purelib', 'platlib')}\nbase = pathlib.Path(d.locate_file('')).resolve()\nassert base in sites, 'distribution is outside interpreter installation paths'\nwheel = d.read_text('WHEEL')\nassert wheel and 'Wheel-Version:' in wheel, 'installed wheel WHEEL metadata required'\nassert d.read_text('RECORD'), 'installed wheel RECORD metadata required'\nfiles = list(d.files or ())\nwheel_rows = [f for f in files if len(f.parts) == 2\n              and f.parts[0].endswith('.dist-info') and f.name == 'WHEEL']\nassert len(wheel_rows) == 1, 'WHEEL must be recorded in installed dist-info'\nmetadata = wheel_rows[0].parent\nrecord_rows = [f for f in files if f == metadata / 'RECORD']\nassert len(record_rows) == 1, 'RECORD must identify the installed wheel'\nfor f in (wheel_rows[0], record_rows[0]):\n    path = pathlib.Path(d.locate_file(f)).resolve()\n    assert path.is_relative_to(base) and path.is_file(), (\n        'invalid installed metadata path')\n    assert path.read_text() == d.read_text(f.name), 'distribution metadata differs'\npackage_rows = [f for f in files if f.parts[0] == 'distributed_backtester'\n                and f.suffix == '.py']\nassert package_rows, 'installed wheel package files must be recorded'\nrecorded = {}\nfor f in package_rows:\n    path = pathlib.Path(d.locate_file(f)).resolve()\n    assert path.is_relative_to(base), 'recorded package file escapes installation'\n    assert f.hash and f.hash.mode in ('sha256', 'sha384', 'sha512'), (\n        'package hash required')\n    content = path.read_bytes()\n    digest = base64.urlsafe_b64encode(\n        hashlib.new(f.hash.mode, content).digest()).rstrip(b'=')\n    assert digest.decode() == f.hash.value and len(content) == f.size, (\n        'package RECORD mismatch')\n    assert path not in recorded, 'duplicate package RECORD entry'\n    recorded[path] = f\nroot = base / 'distributed_backtester'\nimported = pathlib.Path(p.__file__).resolve()\nassert imported == (root / '__init__.py').resolve() and imported in recorded, (\n    'import bypasses wheel')\nassert p.__spec__ and pathlib.Path(p.__spec__.origin).resolve() == imported, (\n    'import origin differs')\nassert {pathlib.Path(path).resolve() for path in p.__path__} == {root.resolve()}, (\n    'package search path differs')\nprint(json.dumps({'version': d.version, 'package_file': p.__file__,\n                  'record_file': str(d.locate_file(record_rows[0])),\n                  'recorded_python_files': len(package_rows),\n                  'uid': __import__('os').getuid()}))\n"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.23372166599983757,
+          "expected_exit": 0,
+          "pid": 8,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "invalid-config.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "backtest",
+            "--config",
+            "/outputs/smoke-hqegap8j/configuration/invalid.toml",
+            "--output",
+            "/outputs/smoke-hqegap8j/invalid-output.json",
+            "--log-level",
+            "ERROR"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.32345133300009365,
+          "expected_exit": 2,
+          "pid": 12,
+          "returncode": 2,
+          "timeout": 180.0
+        },
+        "parquet-backtest.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "backtest",
+            "--data",
+            "/outputs/smoke-hqegap8j/sample.parquet",
+            "--symbol",
+            "SYNTH",
+            "--price-basis",
+            "raw",
+            "--fee-bps",
+            "10",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.304640500000005,
+          "expected_exit": 0,
+          "pid": 660,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "process-artifacts.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-c",
+            "\nimport json, sys\nfrom pathlib import Path\nfrom distributed_backtester.experiment_snapshot import read_experiment_snapshot\nwith read_experiment_snapshot(Path(sys.argv[1])) as s:\n    count = sum(1 for _ in s.iter_artifacts())\n    assert count == s.submitted == s.succeeded and s.failed == 0\n    print(json.dumps({'experiment_id': s.experiment_id, 'validated': count}))\n",
+            "/outputs/smoke-hqegap8j/process"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.2216420830000061,
+          "expected_exit": 0,
+          "pid": 25,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "process-status-job.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/process",
+            "--job-id",
+            "24765a6aca278362092a1c7a91a284ab819789c400dce645d27fc013a21e0180",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.2834741669998948,
+          "expected_exit": 0,
+          "pid": 27,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "process-status.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/process",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.275394790999826,
+          "expected_exit": 0,
+          "pid": 26,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "process.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "sweep",
+            "--data",
+            "/inputs/sma.csv",
+            "--symbol",
+            "SYNTH",
+            "--price-basis",
+            "raw",
+            "--fast",
+            "1",
+            "2",
+            "--slow",
+            "3",
+            "4",
+            "--fee-bps",
+            "10",
+            "--backend",
+            "process",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/process",
+            "--log-level",
+            "INFO",
+            "--workers",
+            "2",
+            "--max-in-flight",
+            "4"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.5834161259999746,
+          "expected_exit": 0,
+          "pid": 18,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "ray-artifacts.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-c",
+            "\nimport json, sys\nfrom pathlib import Path\nfrom distributed_backtester.experiment_snapshot import read_experiment_snapshot\nwith read_experiment_snapshot(Path(sys.argv[1])) as s:\n    count = sum(1 for _ in s.iter_artifacts())\n    assert count == s.submitted == s.succeeded and s.failed == 0\n    print(json.dumps({'experiment_id': s.experiment_id, 'validated': count}))\n",
+            "/outputs/smoke-hqegap8j/ray"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.2384262509999644,
+          "expected_exit": 0,
+          "pid": 340,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "ray-status-job.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/ray",
+            "--job-id",
+            "24765a6aca278362092a1c7a91a284ab819789c400dce645d27fc013a21e0180",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.28147329200010063,
+          "expected_exit": 0,
+          "pid": 342,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "ray-status.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/ray",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.2924507499999436,
+          "expected_exit": 0,
+          "pid": 341,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "ray.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "sweep",
+            "--data",
+            "/inputs/sma.csv",
+            "--symbol",
+            "SYNTH",
+            "--price-basis",
+            "raw",
+            "--fast",
+            "1",
+            "2",
+            "--slow",
+            "3",
+            "4",
+            "--fee-bps",
+            "10",
+            "--backend",
+            "ray",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/ray",
+            "--log-level",
+            "INFO",
+            "--workers",
+            "2",
+            "--max-in-flight",
+            "4",
+            "--cpus-per-worker",
+            "1",
+            "--object-store-memory",
+            "134217728"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 5.192517377000058,
+          "expected_exit": 0,
+          "pid": 28,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "reference-logged.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "backtest",
+            "--data",
+            "/inputs/sma.csv",
+            "--symbol",
+            "SYNTH",
+            "--price-basis",
+            "raw",
+            "--fee-bps",
+            "10",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.32595083299997896,
+          "expected_exit": 0,
+          "pid": 10,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "reference.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "backtest",
+            "--data",
+            "/inputs/sma.csv",
+            "--symbol",
+            "SYNTH",
+            "--price-basis",
+            "raw",
+            "--fee-bps",
+            "10"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.33388095899999826,
+          "expected_exit": 0,
+          "pid": 9,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "results-import.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "results-import",
+            "--experiment-dir",
+            "/outputs/smoke-hqegap8j/sequential",
+            "--database",
+            "/outputs/smoke-hqegap8j/results.duckdb",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.3545123330000024,
+          "expected_exit": 0,
+          "pid": 661,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "results-query.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "results-query",
+            "--database",
+            "/outputs/smoke-hqegap8j/results.duckdb",
+            "--snapshot-id",
+            "f7064c04b67f42db5973eaf05e0f3d52527fe8e84e96039198784b86ef0ebb34",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.4048123750001196,
+          "expected_exit": 0,
+          "pid": 664,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "sequential-artifacts.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-c",
+            "\nimport json, sys\nfrom pathlib import Path\nfrom distributed_backtester.experiment_snapshot import read_experiment_snapshot\nwith read_experiment_snapshot(Path(sys.argv[1])) as s:\n    count = sum(1 for _ in s.iter_artifacts())\n    assert count == s.submitted == s.succeeded and s.failed == 0\n    print(json.dumps({'experiment_id': s.experiment_id, 'validated': count}))\n",
+            "/outputs/smoke-hqegap8j/sequential"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.22808562500017615,
+          "expected_exit": 0,
+          "pid": 15,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "sequential-status-job.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/sequential",
+            "--job-id",
+            "24765a6aca278362092a1c7a91a284ab819789c400dce645d27fc013a21e0180",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.2841571669998757,
+          "expected_exit": 0,
+          "pid": 17,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "sequential-status.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "status",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/sequential",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.282590374999927,
+          "expected_exit": 0,
+          "pid": 16,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "sequential.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "sweep",
+            "--config",
+            "/outputs/smoke-hqegap8j/configuration/sweep.toml",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/sequential",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.32529970900009175,
+          "expected_exit": 0,
+          "pid": 13,
+          "returncode": 0,
+          "timeout": 180.0
+        },
+        "signal-sigint.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "sweep",
+            "--data",
+            "/outputs/smoke-hqegap8j/signal-data.csv",
+            "--symbol",
+            "SYNTH",
+            "--price-basis",
+            "raw",
+            "--fast",
+            "1",
+            "2",
+            "--slow",
+            "3",
+            "4",
+            "--fee-bps",
+            "10",
+            "--backend",
+            "sequential",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/signal-sigint",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.4676638329999605,
+          "expected_exit": 130,
+          "pid": 669,
+          "returncode": 130,
+          "signal": "SIGINT",
+          "signal_event": {
+            "backend": "sequential",
+            "component": "worker",
+            "event": "job_started",
+            "experiment_id": "69cb4f49719f6b10d5c50bc4e57a05fb3906b16969cdc9b26f72ace8bc716c58",
+            "job_id": "59eb8a729af61fe50857f51f13d7094fc97ee32c99fb10fbc30a589ebc4bc8d6",
+            "level": "INFO",
+            "pid": 669,
+            "schema_version": 1,
+            "timestamp": "2026-10-11T18:06:39.773+00:00"
+          },
+          "timeout": 180.0
+        },
+        "signal-sigterm.command.json": {
+          "argv": [
+            "/opt/venv/bin/python",
+            "-I",
+            "-m",
+            "distributed_backtester",
+            "sweep",
+            "--data",
+            "/outputs/smoke-hqegap8j/signal-data.csv",
+            "--symbol",
+            "SYNTH",
+            "--price-basis",
+            "raw",
+            "--fast",
+            "1",
+            "2",
+            "--slow",
+            "3",
+            "4",
+            "--fee-bps",
+            "10",
+            "--backend",
+            "sequential",
+            "--output-dir",
+            "/outputs/smoke-hqegap8j/signal-sigterm",
+            "--log-level",
+            "INFO"
+          ],
+          "cwd": "/outputs/smoke-hqegap8j",
+          "elapsed_seconds": 0.4848824999999124,
+          "expected_exit": 143,
+          "pid": 668,
+          "returncode": 143,
+          "signal": "SIGTERM",
+          "signal_event": {
+            "backend": "sequential",
+            "component": "worker",
+            "event": "job_started",
+            "experiment_id": "69cb4f49719f6b10d5c50bc4e57a05fb3906b16969cdc9b26f72ace8bc716c58",
+            "job_id": "59eb8a729af61fe50857f51f13d7094fc97ee32c99fb10fbc30a589ebc4bc8d6",
+            "level": "INFO",
+            "pid": 668,
+            "schema_version": 1,
+            "timestamp": "2026-10-11T18:06:39.311+00:00"
+          },
+          "timeout": 180.0
+        }
+      }
+    }
+  },
+  "independent_review": {
+    "audited_ci_bash_blocks": 18,
+    "audited_document_bash_blocks": 12,
+    "bookkeeping_regressions": 13,
+    "helper_signal_regressions": 8,
+    "integration_evidence_data_comparisons": 39,
+    "runbook_status_mount_finding": "closed after actual Docker red/green and documentation correction",
+    "scope": "Source reviews and evidence reconciliation; reviewers did not independently rerun full native tests, actual package workers or Docker workloads.",
+    "source_and_quality": "accepted, no open findings"
+  },
+  "installed_core": {
+    "command": "/private/tmp/phase7-release-wheel-env/bin/python -I /Users/blakezhang/Documents/Dev/distrubuted-backtester/scripts/smoke.py --data /Users/blakezhang/Documents/Dev/distrubuted-backtester/examples/sma.csv --output-parent /private/tmp/phase7-release-wheel-smoke --timeout 180 --signals",
+    "exit_code": 0,
+    "installation_command": "/private/tmp/phase7-release-wheel-env/bin/python -m pip install --no-index --no-deps /private/tmp/phase7-release-dist/distributed_backtester-0.8.0-py3-none-any.whl",
+    "installation_exit_code": 0,
+    "pip_check_exit_code": 0,
+    "report": {
+      "installed": {
+        "package_file": "/private/tmp/phase7-release-wheel-env/lib/python3.14/site-packages/distributed_backtester/__init__.py",
+        "record_file": "/private/tmp/phase7-release-wheel-env/lib/python3.14/site-packages/distributed_backtester-0.8.0.dist-info/RECORD",
+        "recorded_python_files": 46,
+        "uid": 501,
+        "version": "0.8.0"
+      },
+      "ok": true,
+      "ray": false,
+      "schema_version": 1,
+      "semantic_digest": "b3d189adfc79df1c9567cbf09f01b2b9ec96d236c4d83a65d0962fa471584006",
+      "signals": true,
+      "storage": false,
+      "workspace": "/private/tmp/phase7-release-wheel-smoke/smoke-d5dqcs21"
+    },
+    "script_and_data_paths": "Absolute checkout paths; subprocesses run from the separate temporary smoke workspace."
+  },
+  "investigated_failures": [
+    {
+      "correction": "Extended fixture and added import guards; independently verified all pre-existing test definitions/assertions unchanged.",
+      "failed": 6,
+      "later_repeat_passed": 1926,
+      "passed": 1904,
+      "reason": "Pure fault fixture did not model the private Ray registration interface.",
+      "stage": "native first final suite"
+    },
+    {
+      "child_exit_code": 0,
+      "correction": "Ignore only top-level SHM/empty WAL beside a journal; keep authoritative writes and nonempty WAL in byte checks.",
+      "helper_exit_code": 1,
+      "reason": "Logical read-only SQLite status created allowed SHM and empty WAL.",
+      "regression_cases": 13,
+      "stage": "first Linux runtime smoke"
+    },
+    {
+      "correction": "Defer both TERM and INT until the child is assigned.",
+      "fresh_focused_cases": 8,
+      "reason": "INT during Popen launch could interrupt before child ownership was recorded.",
+      "review_verdict": "accepted, no open findings",
+      "stage": "independent helper signal review"
+    },
+    {
+      "corrected_exit_code": 0,
+      "correction": "Writable output mount for durable status; explicit logical read-only explanation.",
+      "reason": "Physically read-only output mount can prevent valid closed-journal status from creating SQLite bookkeeping.",
+      "reproduced_exit_code": 2,
+      "stage": "final runbook review"
+    }
+  ],
+  "local_commits": {
+    "task_1": "ed9efa6 and 1d913b9",
+    "task_2": "0895771",
+    "task_3": "f2ec8e3",
+    "version": "0dab66a"
+  },
+  "native": {
+    "architecture": "arm64",
+    "checks": [
+      {
+        "command": "PHASE5_STORAGE_CHILD_TESTS=1 .venv/bin/python -m pytest -q",
+        "elapsed_seconds": 231.48,
+        "exit_code": 0,
+        "log_sha256": "c0c3de86f5bc0599bf6b833f5538b2246881ec1b24f1e48e30f0d7dba2df6847",
+        "passed": 1928
+      },
+      {
+        "command": ".venv/bin/python -m pytest tests/test_operational_native.py -q",
+        "elapsed_seconds": 54.08,
+        "exit_code": 0,
+        "passed": 5
+      },
+      {
+        "command": ".venv/bin/python -m ruff check .",
+        "exit_code": 0,
+        "result": "All checks passed"
+      },
+      {
+        "command": ".venv/bin/python -m ruff format --check .",
+        "exit_code": 0,
+        "formatted_files": 147
+      },
+      {
+        "command": ".venv/bin/python -m mypy",
+        "exit_code": 0,
+        "source_files": 102
+      },
+      {
+        "command": ".venv/bin/python -m pip check",
+        "exit_code": 0,
+        "result": "No broken requirements found"
+      }
+    ],
+    "hardware": "Apple M3 Pro, 11 logical CPUs, 18 GiB RAM",
+    "os": "macOS 26.6.1",
+    "python": "3.14.6",
+    "ray_startup_probes": {
+      "limitation": "Native failure traces can appear on stderr before chaining to the CLI bridge. These probes do not exhaust all signal interleavings.",
+      "native_core_constructor_return": {
+        "cli_exit_code": 143,
+        "handlers_restored": true,
+        "phase": "cli-returned",
+        "ray_initialized": false
+      },
+      "python_registration": {
+        "cli_exit_code": 143,
+        "handlers_restored": true,
+        "hook_restored": true,
+        "ray_version": "2.59.0"
+      }
+    }
+  },
+  "not_observed": [
+    "Remote GitHub Actions",
+    "Linux AMD64 runtime",
+    "Complete Linux dev-image test suite",
+    "Host bind-filesystem durability",
+    "Power-loss recovery",
+    "Docker Desktop external-cluster routing",
+    "Exhaustive signal interleavings"
+  ],
+  "packaging": {
+    "archive_verification": "All package, README, docs, examples, tests, locks, Docker and CI bytes matched the checkout; final source archive refreshed after completion-evidence edits.",
+    "build_command": ".venv/bin/python -m build --no-isolation --outdir /private/tmp/phase7-release-dist",
+    "build_exit_code": 0,
+    "core_runtime_dependencies": 0,
+    "package_files": 47,
+    "package_python_files": 46,
+    "source_archive": "distributed_backtester-0.8.0.tar.gz",
+    "verified_archive_files": 227,
+    "wheel": "distributed_backtester-0.8.0-py3-none-any.whl",
+    "wheel_sha256": "090c792d1bbafbe314128a58ecba35bedcbc5f349331ebe5faa95aaa809ed67d"
+  },
+  "performance_claims": "None in Phase 7; elapsed test times are verification observations, not benchmarks.",
+  "phase": 7,
+  "release_demonstrations": [
+    {
+      "command": "/private/tmp/phase7-release-wheel-env/bin/python -I -m distributed_backtester backtest --config /Users/blakezhang/Documents/Dev/distrubuted-backtester/examples/backtest.toml --fee-bps 10 --log-level INFO",
+      "cwd": "/private/tmp",
+      "exit_code": 0,
+      "metrics": {
+        "fill_count": 2,
+        "final_equity": "749.257000",
+        "maximum_drawdown": "0.250743000000",
+        "total_fees": "1.743000",
+        "total_return": "-0.250743000000"
+      }
+    },
+    {
+      "command": "/private/tmp/phase7-release-wheel-env/bin/python -I -m distributed_backtester sweep --config /Users/blakezhang/Documents/Dev/distrubuted-backtester/examples/sweep.toml --backend process --workers 2 --output-dir /private/tmp/phase7-release-process",
+      "cwd": "/private/tmp",
+      "exit_code": 0,
+      "summary": {
+        "execution": "/private/tmp/phase7-release-process/execution.json",
+        "experiment_id": "84dc08c0d81ae7e183cf772b9b1ed88840209ae86b93ef22ee911a106514da50",
+        "failed": 0,
+        "index": "/private/tmp/phase7-release-process/index.json",
+        "submitted": 4,
+        "succeeded": 4
+      }
+    },
+    {
+      "command": "/private/tmp/phase7-release-wheel-env/bin/python -I -m distributed_backtester status --output-dir /private/tmp/phase7-release-process",
+      "counts": {
+        "failed": 0,
+        "pending": 0,
+        "running": 0,
+        "succeeded": 4
+      },
+      "cwd": "/private/tmp",
+      "exit_code": 0
+    }
+  ],
+  "reviewed_helper_sha256": {
+    "scripts/smoke.py": "007f55b90fa1e65d0c58a66fad77bdba07763e103201d2039f480140437cca12",
+    "tests/test_smoke.py": "4af4f215fa38447c81a58c214a0c5147826685cf108f05b94196ceea16245715",
+    "tests/test_smoke_bookkeeping.py": "767c356e48fcf0530e6c36dc0ca36eca479db00acd96d4d66872743b49ab32f9"
+  },
+  "schema_version": 1,
+  "source_identity": {
+    "engine_id": "distributed-backtester/0.8.0:daily-long-only-v1",
+    "source_sha256": "a3edda1731d8694fda5d6987e570e0cca365bbee22d18bbfc0dbd116003f618f"
+  },
+  "status_mount_validation": {
+    "corrected_command": "docker run --rm --init --mount type=volume,source=phase7-outputs-20261011-1747,target=/outputs distributed-backtester:0.8.0-runtime status --output-dir /outputs/status-bookkeeping-repro",
+    "corrected_exit_code": 0,
+    "counts": {
+      "failed": 0,
+      "pending": 0,
+      "running": 0,
+      "succeeded": 1
+    },
+    "exact_status_matches_original_completed_journal": true,
+    "image_id": "sha256:5932b2b6dd36792bfe563be5f00f17ffb771fe33829a807193211b7d13e3dc5e",
+    "readonly_command": "docker run --rm --init --mount type=volume,source=phase7-outputs-20261011-1747,target=/outputs,readonly distributed-backtester:0.8.0-runtime status --output-dir /outputs/status-bookkeeping-repro",
+    "readonly_exit_code": 2,
+    "readonly_stderr": "error: unable to open database file",
+    "setup": {
+      "directory": "/outputs/status-bookkeeping-repro",
+      "mode": "wal",
+      "sidecars_absent": true
+    },
+    "setup_method": "SQLite online backup of the completed drill-term journal into a fresh directory; WAL mode; closed both connections. No authoritative WAL removed."
+  },
+  "verification_date_utc": "2026-10-11",
+  "version": "0.8.0"
+}

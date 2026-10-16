@@ -1,0 +1,12 @@
+# CPython 3.12.15, Debian bookworm/glibc 2.36, Linux amd64 and arm64.
+# Resolved with uv 0.13.0 for each target; matching exact version closures.
+# Only compatible binary wheels from PyPI are allowed below.
+# Wheel and PEP 658 metadata hashes checked against primary PyPI metadata.
+# See docs/development.md for regeneration and verification commands.
+--index-url https://pypi.org/simple
+--only-binary :all:
+
+# https://pypi.org/pypi/setuptools/84.0.0/json
+# amd64,arm64: setuptools-84.0.0-py3-none-any.whl
+setuptools==84.0.0 \
+    --hash=sha256:51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670
